@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#c8102e" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-512.png" />
+<title>建行 R1/R2 优选助手</title>
+<style>
+  :root{
+    --red:#c8102e; --red-d:#9e0c24; --bg:#f5f6fa; --card:#ffffff;
+    --line:#e6e8ee; --txt:#1f2430; --sub:#6b7280; --up:#d8392b; --chip:#eef1f7;
+    --r0:#2e7d32; --r1:#00897b; --r2:#1565c0; --r3:#ef6c00; --r4:#c62828;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; -webkit-text-size-adjust:100%;}
+  .app{max-width:520px; margin:0 auto; min-height:100vh; padding-bottom:84px;}
+  header{position:sticky; top:0; z-index:20; background:linear-gradient(135deg,var(--red),var(--red-d));
+    color:#fff; padding:14px 16px 12px; box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  header h1{margin:0; font-size:19px; font-weight:700; letter-spacing:.5px;}
+  header .sub{margin-top:3px; font-size:12px; opacity:.9; display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  header .sub b{font-weight:600;}
+  .hbtns{position:absolute; right:12px; top:12px; display:flex; gap:8px;}
+  .hbtn{background:rgba(255,255,255,.18); border:none; color:#fff; border-radius:10px;
+    padding:7px 11px; font-size:13px; font-weight:600; cursor:pointer;}
+  .hbtn:active{transform:scale(.96);}
+  .wrap{padding:12px;}
+  .chips{display:flex; gap:8px; overflow-x:auto; padding:4px 2px 8px; -webkit-overflow-scrolling:touch;}
+  .chip{flex:0 0 auto; background:var(--chip); border:1px solid var(--line); color:var(--txt);
+    border-radius:18px; padding:7px 13px; font-size:13px; cursor:pointer; white-space:nowrap;}
+  .chip.on{background:var(--red); color:#fff; border-color:var(--red);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .card h2{margin:0 0 10px; font-size:15px; display:flex; align-items:center; gap:8px;}
+  details summary{cursor:pointer; font-weight:700; font-size:15px; list-style:none; display:flex; justify-content:space-between; align-items:center;}
+  details summary::after{content:"▾"; color:var(--sub);}
+  details[open] summary::after{content:"▴";}
+  .field{margin-top:12px;}
+  .field label{display:block; font-size:13px; color:var(--sub); margin-bottom:6px; font-weight:600;}
+  .seg{display:flex; flex-wrap:wrap; gap:6px;}
+  .seg button{flex:0 0 auto; background:var(--chip); border:1px solid var(--line); border-radius:10px;
+    padding:8px 12px; font-size:13px; cursor:pointer; color:var(--txt);}
+  .seg button.on{background:var(--red); color:#fff; border-color:var(--red);}
+  .row2{display:flex; gap:10px;}
+  .row2>div{flex:1;}
+  input[type=number],input[type=text]{width:100%; padding:9px 10px; border:1px solid var(--line);
+    border-radius:10px; font-size:14px; background:#fff; color:var(--txt);}
+  input[type=range]{width:100%;}
+  .toggle{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--txt); margin-top:8px; cursor:pointer;}
+  .toggle input{width:18px; height:18px;}
+  .reco-bar{position:sticky; top:64px; z-index:15; display:flex; gap:8px; overflow-x:auto; padding:8px 2px; background:var(--bg);}
+  .reco-bar button{flex:0 0 auto; background:#fff; border:1px solid var(--red); color:var(--red);
+    border-radius:12px; padding:9px 14px; font-size:14px; font-weight:700; cursor:pointer;}
+  .reco-bar button.on{background:var(--red); color:#fff;}
+  .reco-bar .all{border-color:var(--line); color:var(--sub);}
+  .stats{font-size:13px; color:var(--sub); padding:4px 2px 8px;}
+  .stats b{color:var(--txt);}
+  .viewbanner{font-size:14px; font-weight:600; color:var(--txt); background:linear-gradient(90deg,#fff3f0,#fff); border:1px solid var(--line); border-left:4px solid var(--red); border-radius:10px; padding:10px 12px; margin-bottom:10px;}
+  .locknote{font-size:12px; color:var(--sub); margin-top:6px;}
+  .item{border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:#fff; cursor:pointer;}
+  .item .top{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .item .nm{flex:1; min-width:0; font-weight:700; font-size:14.5px; line-height:1.35;}
+  .badge{flex:0 0 auto; font-size:11px; font-weight:700; color:#fff; border-radius:8px; padding:3px 8px; white-space:nowrap;}
+  .item .meta{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:12.5px; color:var(--sub);}
+  .item .meta b{color:var(--txt); font-weight:600;}
+  .yield{color:var(--up); font-weight:700;}
+  .tags{display:flex; gap:5px; flex-wrap:wrap; margin-top:7px;}
+  .tag{font-size:11px; padding:2px 7px; border-radius:6px; background:var(--chip); color:var(--sub);}
+  .tag.g{background:#e6f4ea; color:#1e7d34;}
+  .tag.p{background:#fdecea; color:#c0392b;}
+  .score{margin-top:8px; height:6px; background:var(--line); border-radius:4px; overflow:hidden;}
+  .score>i{display:block; height:100%; background:linear-gradient(90deg,#2e7d32,#1565c0);}
+  .score-txt{font-size:11px; color:var(--sub); margin-top:3px;}
+  .detail{margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px; color:var(--sub); display:none;}
+  .item.open .detail{display:block;}
+  .detail div{margin-bottom:4px;}
+  .detail b{color:var(--txt);}
+  .fab{position:fixed; right:16px; bottom:74px; z-index:30; display:flex; flex-direction:column; gap:10px; align-items:flex-end;}
+  .fab button{width:56px; height:56px; border-radius:50%; border:none; color:#fff; font-size:12px; font-weight:700;
+    box-shadow:0 4px 12px rgba(0,0,0,.25); cursor:pointer;}
+  .fab .refresh{background:#1565c0;}
+  .fab .ota{background:#2e7d32;}
+  .fab .about{background:#6b7280; width:48px; height:48px; font-size:11px;}
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:40; display:none; align-items:center; justify-content:center; padding:18px;}
+  .modal.show{display:flex;}
+  .sheet{background:#fff; border-radius:16px; width:100%; max-width:460px; max-height:86vh; overflow:auto; padding:18px;}
+  .sheet h3{margin:0 0 12px; font-size:17px;}
+  .sheet .close{float:right; border:none; background:none; font-size:20px; cursor:pointer; color:var(--sub);}
+  .sheet p{font-size:13px; line-height:1.6; color:var(--sub);}
+  .btn{display:block; width:100%; padding:12px; border:none; border-radius:12px; background:var(--red); color:#fff;
+    font-size:15px; font-weight:700; cursor:pointer; margin-top:10px;}
+  .btn.sub{background:var(--chip); color:var(--txt);}
+  .btn:active{transform:scale(.98);}
+  .status{font-size:12.5px; color:var(--sub); margin-top:10px; min-height:18px;}
+  .warn{background:#fff8e1; border:1px solid #ffe082; color:#8a6d00; border-radius:10px; padding:9px 11px; font-size:12px; margin-top:10px;}
+  #toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(31,36,48,.92); color:#fff;
+    padding:10px 16px; border-radius:22px; font-size:13px; z-index:50; opacity:0; transition:opacity .25s; pointer-events:none; max-width:90%;}
+  #toast.show{opacity:1;}
+  .file-in{margin-top:10px;}
+  .item .status-badge{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:6px; margin-left:6px; color:#fff; vertical-align:middle;}
+  .src-tag{display:inline-block; font-size:10px; padding:1px 6px; border-radius:5px; background:#eef1f7; color:#6b7280; margin-left:5px; vertical-align:middle;}
+  .src-tag.live{background:#e3f2fd; color:#1565c0;}
+  .src-tag.off{background:#fdecea; color:#c62828;}
+  .stale{font-size:11px; color:#9aa0aa;}
+  .official{font-size:11px; color:#1b7f3b; font-weight:600;}
+  .item.off{border-style:dashed; background:#fafafb; opacity:.92;}
+  .warn-off{margin-top:7px; font-size:11.5px; color:#b26a00; background:#fff7e6; border:1px solid #ffe0a3; border-radius:8px; padding:6px 9px; line-height:1.5;}
+  .detail-link{display:inline-block; margin-top:7px; color:#1565c0; font-weight:600; text-decoration:none; font-size:12.5px;}
+  .detail-link:active{opacity:.6;}
+  .prog{height:8px; background:var(--line); border-radius:5px; overflow:hidden; margin-top:8px;}
+  .prog>i{display:block; height:100%; width:0; background:var(--red); transition:width .25s;}
+  .hr{border:none; border-top:1px solid var(--line); margin:14px 0;}
+  .tabbar{position:fixed; left:0; right:0; bottom:0; z-index:25; max-width:520px; margin:0 auto;
+    display:flex; background:#fff; border-top:1px solid var(--line);
+    box-shadow:0 -2px 8px rgba(0,0,0,.06); height:56px; padding-bottom:env(safe-area-inset-bottom);}
+  .tabbar button{flex:1; border:none; background:none; cursor:pointer; font-size:15px; font-weight:700;
+    color:var(--sub); display:flex; align-items:center; justify-content:center; gap:6px;}
+  .tabbar button.on{color:var(--red);}
+  .tabbar .dot{width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block;}
+  .view{display:none;}
+  .view.on{display:block;}
+  .fbanner{background:#eef4ff; border:1px solid #d6e4ff; color:#1a3a6b; border-radius:10px; padding:9px 11px;
+    font-size:12px; line-height:1.55; margin-bottom:10px;}
+  .fstatus{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:7px; margin-top:8px;}
+  .fstatus.up{background:#e3f2fd; color:#1565c0;}
+  .fstatus.re{background:#fff3e0; color:#ef6c00;}
+  .fsec{font-size:14px; font-weight:700; margin:14px 0 8px; color:var(--txt); display:flex; align-items:center; gap:8px;}
+  .fsec .cnt{font-size:12px; color:var(--sub); font-weight:500;}
+  .fempty{text-align:center; color:var(--sub); font-size:13px; padding:18px; background:#fff; border:1px dashed var(--line); border-radius:12px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>建行 R1/R2 优选助手</h1>
+    <div class="sub" id="hdSub">加载中…</div>
+    <div class="hbtns">
+      <button class="hbtn" onclick="openModal('refreshModal')">拉新</button>
+      <button class="hbtn" onclick="checkOTA()">更新</button>
+    </div>
+  </header>
+
+  <div id="viewMain" class="view on"><div class="wrap">
+    <div class="viewbanner" id="viewBanner"></div>
+    <div class="chips" id="quickChips"></div>
+
+    <div class="card">
+      <details id="advDetails">
+        <summary>高级筛选</summary>
+        <div class="field">
+          <label>风险等级</label>
+          <div class="seg" id="fRisk"></div>
+        </div>
+        <div class="field" id="typeField">
+          <label>产品类型</label>
+          <div class="seg" id="fType"></div>
+          <div class="locknote" id="typeLock" style="display:none">🔒 本页已锁定为「理财」类，切回顶部「优选」可看全部 / 基金</div>
+        </div>
+        <div class="field">
+          <label>业绩比较基准（年化 %）</label>
+          <div class="row2">
+            <div><input type="number" id="fYmin" placeholder="最低%" step="0.1" value="0"></div>
+            <div><input type="number" id="fYmax" placeholder="最高%" step="0.1" value="10"></div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="fNoYield" checked> 包含“净值型/无基准”的开放式产品（按经验估值参与排序）</label>
+        </div>
+        <div class="field">
+          <label>预估最大回撤上限（%）<span id="ddVal">2.0</span></label>
+          <input type="range" id="fDD" min="0" max="2" step="0.1" value="2">
+          <span style="font-size:11px;color:var(--sub)">官方公示不含回撤，此处为按风险等级的预估代理值</span>
+        </div>
+        <div class="field">
+          <label>产品期限（天，封闭式）</label>
+          <div class="row2">
+            <div><input type="number" id="fTmin" placeholder="最短" step="1" value="0"></div>
+            <div><input type="number" id="fTmax" placeholder="最长" step="1" value="2000"></div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="fOpen" checked> 包含开放式 / 循环发售</label>
+        </div>
+        <div class="field">
+          <label>起存金额上限</label>
+          <div class="seg" id="fAmt">
+            <button data-v="1000000" class="on">不限</button>
+            <button data-v="1">1元起</button>
+            <button data-v="10000">1万起</button>
+            <button data-v="50000">5万起</button>
+            <button data-v="300000">30万起</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>发行机构（可多选，不选=全部）</label>
+          <div class="seg" id="fIssuer" style="max-height:120px;overflow:auto;"></div>
+        </div>
+        <div class="field">
+          <label class="toggle"><input type="checkbox" id="fGuar"> 仅含保本型（结构性存款 R0）</label>
+          <label class="toggle"><input type="checkbox" id="fNoPriv" checked> 排除私人银行专享（高门槛）</label>
+          <label class="toggle"><input type="checkbox" id="fFund"> 仅公募基金</label>
+          <label class="toggle"><input type="checkbox" id="fOff" checked> 隐藏已下架产品（旧公示 2026-04-15 里已不在实时在售名单的 211 只，仅作历史参考）</label>
+        </div>
+        <div class="field">
+          <label>发行/募集年限下限（年，仅封闭式可算）</label>
+          <input type="number" id="fAge" placeholder="0" step="0.5" value="0">
+        </div>
+        <div class="field">
+          <label>关键词（名称/机构）</label>
+          <input type="text" id="fKw" placeholder="如：嘉鑫、建信、农银…">
+        </div>
+      </details>
+    </div>
+
+    <div class="reco-bar" id="recoBar"></div>
+    <div class="stats" id="stats"></div>
+    <div id="list"></div>
+  </div></div><!-- /viewMain -->
+
+  <div id="viewFuture" class="view"><div class="wrap">
+    <div class="fbanner" id="futureBanner"></div>
+    <div class="seg" id="futureTabs" style="margin-bottom:10px;">
+      <button data-f="all" class="on" onclick="setFutureTab('all')">全部</button>
+      <button data-f="subscribe" onclick="setFutureTab('subscribe')">待发售 / 认购中</button>
+      <button data-f="reopen" onclick="setFutureTab('reopen')">封闭待开放</button>
+    </div>
+    <div class="chips" id="futureRisk"></div>
+    <div class="stats" id="futureStats"></div>
+    <div id="futureList"></div>
+  </div></div><!-- /viewFuture -->
+
+</div><!-- /app -->
+
+<nav class="tabbar">
+  <button class="tab on" data-v="main" onclick="switchView('main')"><span class="dot"></span>优选</button>
+  <button class="tab" data-v="licai" onclick="switchView('licai')"><span class="dot"></span>理财产品</button>
+  <button class="tab" data-v="future" onclick="switchView('future')"><span class="dot"></span>未来</button>
+</nav>
+
+<div class="fab">
+  <button class="about" onclick="openModal('aboutModal')">说明</button>
+  <button class="refresh" onclick="openModal('refreshModal')">⟳<br>拉新</button>
+  <button class="ota" onclick="checkOTA()">⇡<br>更新</button>
+</div>
+
+<!-- 拉新 Modal -->
+<div class="modal" id="refreshModal">
+  <div class="sheet">
+    <button class="close" onclick="closeModal('refreshModal')">×</button>
+    <h3>拉取最新数据</h3>
+
+    <p>① <b>实时在售清单</b>（推荐）：直连建行接口，覆盖当前所有在售理财/基金/结构性存款，含实时“认购/申购/预售”状态。需经 CORS 代理，内置多个公共代理，失败时可粘贴你自建的代理（见说明）。</p>
+    <label style="font-size:13px;color:var(--sub);font-weight:600;">CORS 代理地址（可改，留空用内置公共代理）</label>
+    <input type="text" id="proxyUrl" placeholder="如 https://你的worker.dev/?url=" style="margin-top:6px;">
+    <button class="btn" id="liveBtn" onclick="pullLive()">① 拉取建行实时在售清单</button>
+    <div class="prog" id="liveProg"><i></i></div>
+    <div style="font-size:11px;color:var(--sub)" id="livePage">等待开始…</div>
+
+    <hr class="hr">
+
+    <p>② <b>官方公示 Excel</b>（备选）：含完整收益率/期限/起存，但更新滞后。粘贴最新链接或导入本地文件。</p>
+    <label style="font-size:13px;color:var(--sub);font-weight:600;">公示 Excel 链接</label>
+    <input type="text" id="excelUrl" value="https://en3.ccb.com/chn/attachDir/2026/04/2026041511031418203.xlsx" style="margin-top:6px;">
+    <button class="btn sub" onclick="pullFromUrl()">② 通过代理拉取公示 Excel</button>
+    <div class="file-in">
+      <button class="btn sub" onclick="document.getElementById('fileInput').click()">③ 导入本地 Excel 文件</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="importFile(event)">
+    </div>
+    <div class="warn">提示：公共代理可能不稳定，若 ① 失败：最稳方案是部署一个 Cloudflare Worker 代理（说明页有现成代码），把地址粘贴到上方即可。无论是否拉新，内置的实时快照（2026-10-28）始终可用。</div>
+    <div class="status" id="refreshStatus"></div>
+  </div>
+</div>
+
+<!-- 关于 Modal -->
+<div class="modal" id="aboutModal">
+  <div class="sheet">
+    <button class="close" onclick="closeModal('aboutModal')">×</button>
+    <h3>关于与免责</h3>
+    <p>
+      • 数据来源：建设银行官网《在售代理类产品信息公示》（内置快照：<b id="aboutDate"></b>）。<br>
+      • 本工具为个人研究用途的筛选/推荐辅助，<b>不构成任何投资建议</b>。<br>
+      • 资管新规后银行理财已全面净值化、<b>不保本保息</b>；R2 也可能短期破净。<br>
+      • 官方公示<b>不含历史回撤与成立日期</b>：历史回撤为按风险等级的<b>预估代理值</b>（非官方），成立/发行年限仅封闭式可按募集起始日估算。<br>
+      • 推荐分 = 收益性35% + 安全性(低回撤)30% + 流动性20% + 低门槛10% + 机构5%，权重透明可调。<br>
+      • OTA：部署到 https 后会随新版本自动更新；当前“更新”按钮可检查 version.json 版本并提示。
+    </p>
+    <button class="btn sub" onclick="closeModal('aboutModal')">知道了</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="libs/xlsx.full.min.js"></script>
+<script src="data.js"></script>
+<script>
+/* ---------- 常量 ---------- */
+let curView='main';
+const APP_VERSION = '1.3.0';
+const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
+const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
+const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
+const STATUS_TEXT = {'01':'申购中','02':'认购中','03':'可预约','04':'预售','05':'已售完'};
+const LIVE_FUTURE_CODES = ['02','03','04'];
+const LS_PRODUCTS = 'ccb_products_v1', LS_LIVE_DATE = 'ccb_live_date_v1', LS_PROXY = 'ccb_proxy_v1';
+const LIVE_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+const TODAY = new Date('2026-10-28');
+
+/* ---------- 解析工具（与 Python 清洗逻辑一致，用于拉新/导入） ---------- */
+function parseAmount(s){
+  if(s==null) return null;
+  s=String(s).replace(/,/g,'').replace('元','').replace(/\s/g,'');
+  if(s===''||s==='None'||s==='nan') return null;
+  const m=s.match(/([\d.]+)\s*(万|百万|千万|亿)?/);
+  if(!m) return null;
+  let num=parseFloat(m[1]); if(isNaN(num)) return null;
+  const u=m[2];
+  if(u==='万') num*=1e4; else if(u==='百万') num*=1e6; else if(u==='千万') num*=1e7; else if(u==='亿') num*=1e8;
+  return num;
+}
+function parseYield(s){
+  if(s==null) return [null,null,null];
+  s=String(s);
+  if(/净值|详见|仅作为/.test(s)) return [null,null,null];
+  const nums=(s.match(/[\d.]+/g)||[]).map(Number).filter(n=>!isNaN(n));
+  if(!nums.length) return [null,null,null];
+  const lo=Math.min(...nums), hi=Math.max(...nums);
+  return [lo,hi,Math.round((lo+hi)/2*10000)/10000];
+}
+function parseTerm(s){
+  if(s==null) return null;
+  s=String(s).trim();
+  if(['循环发售','净值型','','None','null'].includes(s)) return null;
+  const n=Number(s); return isNaN(n)?null:n;
+}
+function parseRisk(s){ if(s==null) return null; const m=String(s).match(/R\s*([0-5])/); return m?('R'+m[1]):null; }
+function parseDate(v){
+  if(v==null) return null;
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  if(typeof v==='number' && v>20000 && v<60000){
+    const d=new Date((v-25569)*86400000); return isNaN(d)?null:d.toISOString().slice(0,10);
+  }
+  if(typeof v==='string'){ const m=v.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/); if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`; }
+  return null;
+}
+function estDrawdown(risk,name){
+  const n=name||'';
+  if(risk==='R0') return 0.0;
+  if(risk==='R1') return /现金|货币|存单|日开|活钱|天天|宝/.test(n)?0.05:0.1;
+  if(risk==='R2'){
+    if(/现金|货币|存单|日开|天天|宝/.test(n)) return 0.3;
+    if(/封闭|最短持有|定开/.test(n)) return 1.2;
+    return 0.8;
+  }
+  return null;
+}
+function ageYears(sd){ if(!sd) return null; const d=new Date(sd); if(isNaN(d)) return null; return Math.round((TODAY-d)/365.25/86400000*100)/100; }
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+function d0(s){ if(!s) return null; const d=new Date(s + 'T00:00:00'); return isNaN(d)?null:d; }
+function daysBetween(a,b){ return Math.round((a - b) / 86400000); }
+
+function parseWorkbook(wb){
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:false});
+  let hi = rows.findIndex(r=> r && r.some(c=> typeof c==='string' && c.includes('产品中文全称')));
+  if(hi<0) hi=2;
+  const data = rows.slice(hi+1);
+  const out=[];
+  for(const r of data){
+    if(!r || r.length<15) continue;
+    const name=r[1]; if(name==null||String(name).trim()==='') continue;
+    const nm=String(name).trim();
+    const risk=parseRisk(r[9]);
+    const [ylo,yhi,ymid]=parseYield(r[6]);
+    const term=parseTerm(r[4]);
+    const amount=parseAmount(r[5]);
+    const sdate=parseDate(r[2]);
+    const issuer=String(r[10]||'').trim();
+    const feat=String(r[7]||'');
+    const target=String(r[8]||'');
+    const note=String(r[14]||'');
+    const ptype='基金' in nm ? '基金' : '理财';
+    const guaranteed=/保本/.test(feat)&&!/非保本/.test(feat);
+    const priv=(/私人银行/.test(target))||(/私行/.test(target));
+    const dd=estDrawdown(risk,nm);
+    out.push({
+      id:out.length+1, name:nm, risk, type:ptype, issuer,
+      yield_min:ylo, yield_max:yhi, yield_mid:ymid,
+      term_days:term, term_label: term? (term+'天'):'开放式/循环',
+      min_amount:amount, start_date:sdate, age_years:ageYears(sdate),
+      guaranteed, private:priv, est_drawdown:dd,
+      sales_target:target.replace(/\n/g,' ').trim(), note
+    });
+  }
+  return out;
+}
+
+/* ---------- 数据 + 状态 ---------- */
+let RAW = (window.APP_DATA && window.APP_DATA.products) || [];
+const META = (window.APP_DATA && window.APP_DATA.meta) || {};
+let state = {
+  risks:['R1','R2'], types:'all', ymin:0, ymax:10, noYield:true,
+  dd:2.0, tmin:0, tmax:2000, open:true, amt:1000000, issuers:[],
+  guar:false, noPriv:true, fund:false, age:0, kw:'',
+  hideOffshelf:true,  // 默认隐藏已下架(旧公示、不在实时在售名单)产品
+  sort:'score', limit:'all', source:META.data_date||'快照'
+};
+// “未来”视图：以数据日期为基准判断未来事件；拉新后改用最新数据日期
+let REF_TODAY = (META.live_date || META.data_date) ? new Date((META.live_date || META.data_date) + 'T00:00:00') : new Date();
+let futureState = { tab:'all', risks:['R1','R2'], noPriv:true };
+
+/* ---------- 评分 ---------- */
+function scoreProduct(p){
+  let y=p.yield_mid;
+  if(y==null) y = p.risk==='R0'?1.0 : p.risk==='R1'?1.5 : p.risk==='R2'?2.2 : 3.0;
+  const yieldS=clamp((y-0.8)/(3.7-0.8)*100,0,100);
+  const dd=p.est_drawdown==null?1.0:p.est_drawdown;
+  const safetyS=clamp(100 - dd/2*100,0,100);
+  const t=p.term_days==null?0:p.term_days;
+  const liqS= t===0?100:clamp(100 - t/365*100,0,100);
+  const a=p.min_amount==null?10000:p.min_amount;
+  const accessS= a<=1?100 : a<=10000?80 : a<=50000?60 : a<=300000?40 : 20;
+  const issuerS=(p.issuer&&p.issuer.indexOf('建信理财')>=0)?100:90;
+  const score= yieldS*0.35 + safetyS*0.30 + liqS*0.20 + accessS*0.10 + issuerS*0.05;
+  return {score:Math.round(score*10)/10, yieldS, safetyS, liqS, accessS, issuerS, yUsed:Math.round(y*100)/100};
+}
+
+/* ---------- 筛选 ---------- */
+function applyFilters(list){
+  const f=state;
+  return list.filter(p=>{
+    // 已下架：来自旧公示、且未匹配到实时在售状态的产品（数据 2026-04-15，可能无法申购）
+    if(f.hideOffshelf && p.src!=='live' && !p.live_status_code) return false;
+    if(f.risks.indexOf(p.risk)<0) return false;
+    if(f.types!=='all' && p.type!==f.types) return false;
+    const hasY = p.yield_mid!=null;
+    if(f.ymin>0 || f.ymax<10){
+      if(!hasY) { if(!f.noYield) return false; }
+      else { if(p.yield_mid<f.ymin || p.yield_mid>f.ymax) return false; }
+    }
+    const dd=p.est_drawdown==null?1.0:p.est_drawdown;
+    if(dd>f.dd) return false;
+    if(p.term_days==null){ if(!f.open) return false; }
+    else { if(p.term_days<f.tmin || p.term_days>f.tmax) return false; }
+    if(p.min_amount!=null && p.min_amount>f.amt) return false;
+    if(f.issuers.length && f.issuers.indexOf(p.issuer)<0) return false;
+    if(f.guar && !p.guaranteed) return false;
+    if(f.noPriv && p.private) return false;
+    if(f.fund && p.type!=='基金') return false;
+    if(f.age>0){ if(p.age_years==null || p.age_years<f.age) return false; }
+    if(f.kw){ const k=f.kw.toLowerCase(); if((p.name+p.issuer).toLowerCase().indexOf(k)<0) return false; }
+    return true;
+  });
+}
+function sortList(list){
+  const k=state.sort;
+  const arr=list.map(p=>({p,s:scoreProduct(p)}));
+  arr.sort((a,b)=>{
+    if(k==='yield') return (b.p.yield_mid??-1)-(a.p.yield_mid??-1);
+    if(k==='term') return (a.p.term_days??-1)-(b.p.term_days??-1);
+    if(k==='amt') return (a.p.min_amount??1e9)-(b.p.min_amount??1e9);
+    if(k==='dd') return (a.p.est_drawdown??9)-(b.p.est_drawdown??9);
+    return b.s.score-a.s.score; // score
+  });
+  return arr;
+}
+
+/* ---------- 渲染 ---------- */
+function rMB(v){ if(v==null) return '—'; if(v>=10000) return (v/10000)+'万'; return v+'元'; }
+function statusInfo(p){
+  const code = p.status_code || p.live_status_code;
+  const name = p.status || p.live_status;
+  if(!code || !name) return '';
+  const col = STATUS_COLORS[code] || '#888';
+  return `<span class="status-badge" style="background:${col}">${name}</span>`;
+}
+
+// 收益率文案：按来源区分真实度
+//  yield_source==='pdf'      → 官方PDF提取的真实业绩比较基准(默认2026-10-29抓取)
+//  yield_source==='pdf_formula' → 挂钩型，无固定基准
+//  旧公示(无yield_source)     → 2026-04-15数据(灰色stale)
+//  无yield                   → 净值型，按风险估值
+function yTxtOf(p, s){
+  if(p.yield_mid!=null){
+    const yShow = (p.yield_min!=null && p.yield_max!=null && p.yield_min!==p.yield_max)
+      ? `${p.yield_min}%~${p.yield_max}%` : `${p.yield_mid}%`;
+    if(p.yield_source==='pdf') return `<span class="yield">${yShow}</span> <span class="official">官方基准${p.yield_date?' · '+p.yield_date:''}</span>`;
+    if(p.yield_source==='pdf_formula') return `<span class="yield">挂钩型</span> <span class="official">基准随市场浮动</span>`;
+    return `<span class="yield">${yShow}</span> <span class="stale">中值${p.yield_mid}% · 数据2026-04-15</span>`;
+  }
+  if(p.yield_source==='pdf_formula') return `<span class="yield">挂钩型</span> <span class="official">基准随市场浮动</span>`;
+  return `<span class="yield">净值型</span> <span class="stale">· 无官方基准，按风险估值${s&&s.yUsed?(' '+s.yUsed+'%'):''}</span>`;
+}
+function render(){
+  const filtered=applyFilters(RAW);
+  const scored=sortList(filtered);
+  const limit = state.limit==='all'? scored.length : Math.min(state.limit, scored.length);
+  const shown = scored.slice(0,limit);
+  // 统计
+  document.getElementById('stats').innerHTML =
+    `符合筛选 <b>${filtered.length}</b> 只 · 当前展示 <b>${shown.length}</b> 只` +
+    (state.limit!=='all'?`（推荐 Top ${state.limit}）`:'') + ` · 数据源 <b>${state.source}</b>`;
+  const listEl=document.getElementById('list');
+  if(!shown.length){ listEl.innerHTML='<div class="card" style="text-align:center;color:var(--sub)">没有符合条件的产品，请放宽筛选条件。</div>'; return; }
+  listEl.innerHTML = shown.map((o,idx)=>{
+    const p=o.p, s=o.s;
+    const off = p.src!=='live' && !p.live_status_code;  // 已下架：旧公示、不在实时在售名单
+    const yTxt = yTxtOf(p, s);
+    const tags=[];
+    if(p.guaranteed) tags.push('<span class="tag g">保本</span>');
+    if(p.private) tags.push('<span class="tag p">私行</span>');
+    tags.push(`<span class="tag">${p.type}</span>`);
+    tags.push(`<span class="tag">预估回撤≤${p.est_drawdown==null?'1.0':p.est_drawdown}%</span>`);
+    const detail = state.sort==='score'
+      ? `<div class="score"><i style="width:${s.score}%"></i></div><div class="score-txt">综合评分 ${s.score} ｜ 收益${Math.round(s.yieldS)} 安全${Math.round(s.safetyS)} 流动${Math.round(s.liqS)} 门槛${Math.round(s.accessS)} 机构${Math.round(s.issuerS)}</div>`
+      : '';
+    const stBadge = statusInfo(p);
+    const srcTag = p.src==='live' ? '<span class="src-tag live">实时</span>' : (p.live_status_code ? '<span class="src-tag">含实时状态</span>' : (off ? '<span class="src-tag off">已下架</span>' : ''));
+    const durl = p.detail_url;
+    const link = durl ? `<a class="detail-link" href="${durl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">查看官方详情页 ↗</a>` : '';
+    return `<div class="item${off?' off':''}" onclick="this.classList.toggle('open')">
+      <div class="top">
+        <div class="nm">${state.limit!=='all'?'<b style="color:var(--red)">#'+(idx+1)+'</b> ':'#'+p.id+' '}${p.name}${srcTag}</div>
+        <span class="badge" style="background:${RISK_COLORS[p.risk]||'#888'}">${RISK_LABEL[p.risk]||p.risk}</span>
+      </div>
+      ${stBadge?`<div style="margin-top:6px">${stBadge}</div>`:''}
+      ${off?`<div class="warn-off">⚠ 该产品来自 2026-04-15 公示，已不在 2026-10-28 实时在售名单，收益率仅供参考、当前可能无法申购。</div>`:''}
+      <div class="meta">
+        <span>机构：<b>${p.issuer||'—'}</b></span>
+        <span>收益：${yTxt}</span>
+      </div>
+      <div class="meta">
+        <span>期限：<b>${p.term_label||'—'}</b></span>
+        <span>起存：<b>${rMB(p.min_amount)}</b></span>
+      </div>
+      <div class="tags">${tags.join('')}</div>
+      ${detail}
+      <div class="detail">
+        <div>销售对象：<b>${p.sales_target||'—'}</b></div>
+        <div>募集起始：<b>${p.start_date||'开放式/循环(无)'}</b>　发行年限：<b>${p.age_years!=null?p.age_years+'年':'不适用'}</b></div>
+        <div>备注：<b>${p.note||'—'}</b></div>
+        ${link}
+        <div style="color:#b00">理财非存款、不保本保息；回撤为预估代理值，仅供参考。</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 控件构建 ---------- */
+function buildControls(){
+  // 风险
+  const risks=['R0','R1','R2','R3','R4'];
+  document.getElementById('fRisk').innerHTML = risks.map(r=>
+    `<button data-r="${r}" class="${state.risks.indexOf(r)>=0?'on':''}">${RISK_LABEL[r]}</button>`).join('');
+  document.getElementById('fRisk').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const r=b.dataset.r; const i=state.risks.indexOf(r);
+    if(i>=0) state.risks.splice(i,1); else state.risks.push(r);
+    b.classList.toggle('on'); render();
+  });
+  // 类型
+  document.getElementById('fType').innerHTML =
+    `<button data-t="all" class="on">全部</button><button data-t="理财">理财</button><button data-t="基金">基金</button>`;
+  document.getElementById('fType').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    setType(b.dataset.t);
+  });
+  // 机构
+  const issuers=[...new Set(RAW.map(p=>p.issuer).filter(Boolean))].sort();
+  document.getElementById('fIssuer').innerHTML = issuers.map(s=>`<button data-i="${s}">${s.replace('有限责任公司','')}</button>`).join('');
+  document.getElementById('fIssuer').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const i=b.dataset.i; const k=state.issuers.indexOf(i);
+    if(k>=0) state.issuers.splice(k,1); else state.issuers.push(i);
+    b.classList.toggle('on'); render();
+  });
+  // 起存快捷
+  document.getElementById('fAmt').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    state.amt=Number(b.dataset.v);
+    document.getElementById('fAmt').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); render();
+  });
+  // 快速 chip
+  const quick=[
+    {t:'仅 R1',f:()=>{state.risks=['R1'];syncRisk();}},
+    {t:'仅 R2',f:()=>{state.risks=['R2'];syncRisk();}},
+    {t:'1元起',f:()=>setAmt(1)},
+    {t:'开放式',f:()=>{state.open=true;document.getElementById('fOpen').checked=true;render();}},
+    {t:'保本',f:()=>{state.guar=true;document.getElementById('fGuar').checked=true;render();}},
+    {t:'重置',f:resetFilters}
+  ];
+  document.getElementById('quickChips').innerHTML = quick.map((q,i)=>`<div class="chip" data-i="${i}">${q.t}</div>`).join('');
+  document.getElementById('quickChips').querySelectorAll('.chip').forEach(c=>c.onclick=()=>quick[+c.dataset.i].f());
+  // 推荐条
+  const reco=[5,10,20,50,'all'];
+  document.getElementById('recoBar').innerHTML = reco.map(n=>
+    `<button data-n="${n}" class="${state.limit===n?'on':''}">${n==='all'?'显示全部':('推荐'+n)}</button>`).join('');
+  document.getElementById('recoBar').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    state.limit = b.dataset.n==='all'?'all':Number(b.dataset.n);
+    document.getElementById('recoBar').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); render();
+    document.querySelector('.wrap').scrollIntoView({behavior:'smooth'});
+  });
+  // 输入绑定
+  bind('#fYmin','ymin',v=>state.ymin=v); bind('#fYmax','ymax',v=>state.ymax=v);
+  bind('#fTmin','tmin',v=>state.tmin=v); bind('#fTmax','tmax',v=>state.tmax=v);
+  bind('#fAge','age',v=>state.age=v); bind('#fKw','kw',v=>state.kw=v);
+  document.getElementById('fNoYield').onchange=e=>{state.noYield=e.target.checked;render();};
+  document.getElementById('fDD').oninput=e=>{state.dd=Number(e.target.value);document.getElementById('ddVal').textContent=state.dd.toFixed(1);render();};
+  document.getElementById('fOpen').onchange=e=>{state.open=e.target.checked;render();};
+  document.getElementById('fGuar').onchange=e=>{state.guar=e.target.checked;render();};
+  document.getElementById('fNoPriv').onchange=e=>{state.noPriv=e.target.checked;render();};
+  document.getElementById('fFund').onchange=e=>{state.fund=e.target.checked;render();};
+  document.getElementById('fOff').onchange=e=>{state.hideOffshelf=e.target.checked;render();};
+}
+function bind(sel,key,fn){ const el=document.querySelector(sel); el.oninput=()=>{ fn(parseFloat(el.value)||0); render(); }; }
+function setAmt(v){ state.amt=v; document.getElementById('fAmt').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  const b=[...document.getElementById('fAmt').querySelectorAll('button')].find(x=>Number(x.dataset.v)===v); if(b)b.classList.add('on'); render(); }
+function syncRisk(){ document.getElementById('fRisk').querySelectorAll('button').forEach(b=>{ b.classList.toggle('on', state.risks.indexOf(b.dataset.r)>=0); }); render(); }
+function resetFilters(){
+  state={...state, risks:['R1','R2'], types:'all', ymin:0, ymax:10, noYield:true, dd:2.0, tmin:0, tmax:2000, open:true,
+    amt:1000000, issuers:[], guar:false, noPriv:true, fund:false, age:0, kw:'', hideOffshelf:true, limit:'all'};
+  document.getElementById('fYmin').value=0; document.getElementById('fYmax').value=10;
+  document.getElementById('fTmin').value=0; document.getElementById('fTmax').value=2000;
+  document.getElementById('fAge').value=0; document.getElementById('fKw').value='';
+  document.getElementById('fNoYield').checked=true; document.getElementById('fOpen').checked=true;
+  document.getElementById('fGuar').checked=false; document.getElementById('fNoPriv').checked=true; document.getElementById('fFund').checked=false; document.getElementById('fOff').checked=true;
+  document.getElementById('fDD').value=2; document.getElementById('ddVal').textContent='2.0';
+  document.getElementById('fType').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.t==='all'));
+  document.getElementById('fAmt').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v==='1000000'));
+  document.getElementById('fIssuer').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  syncRisk();
+  document.getElementById('recoBar').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.n==='all'));
+}
+
+/* ---------- 拉新 ---------- */
+async function pullFromUrl(){
+  const url=document.getElementById('excelUrl').value.trim();
+  const st=document.getElementById('refreshStatus'); st.textContent='正在通过代理拉取并解析…';
+  const proxies=[
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?url=',
+    'https://thingspro.io/cors?url='
+  ];
+  for(const px of proxies){
+    try{
+      const res=await fetch(px+encodeURIComponent(url),{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const buf=await res.arrayBuffer();
+      ingest(buf, st, '代理 '+px.split('/')[2]);
+      return;
+    }catch(e){ /* try next */ }
+  }
+  st.textContent='代理拉取失败（官网可能防爬或链接过期）。请改用“② 导入本地 Excel 文件”。';
+}
+function importFile(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const st=document.getElementById('refreshStatus'); st.textContent='正在解析本地文件…';
+  const reader=new FileReader();
+  reader.onload=()=>{ try{ ingest(reader.result, st, '本地文件'); }catch(e){ st.textContent='解析失败：'+e.message; } };
+  reader.readAsArrayBuffer(file);
+}
+function ingest(arrayBuffer, st, src){
+  const wb=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+  const products=parseWorkbook(wb);
+  if(!products.length){ st.textContent='未解析到有效产品行，请确认是建行公示 Excel。'; return; }
+  RAW=products;
+  const dd=new Date().toISOString().slice(0,10);
+  state.source=dd+'（拉新）';
+  document.getElementById('hdSub').innerHTML=`数据日期 <b>${dd}</b> · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  REF_TODAY=new Date(dd + 'T00:00:00');
+  buildControls(); render();
+  buildFutureRisk(); renderFuture();
+  st.textContent=`✓ ${src} 成功，已更新 ${products.length} 只产品（${dd}）。`;
+  toast('数据已刷新 '+products.length+' 只');
+  closeModal('refreshModal');
+}
+
+/* ---------- 实时接口拉取（NISP00） ---------- */
+const LIVE_CATS=[['115','理财'],['094,093','基金'],['128','结构性存款']];
+const LIVE_AMT=300;
+const STATUS_MAP={'01':'申购中','02':'认购中','03':'可预约','04':'预售','05':'已售完'};
+const RISK_MAP_LC={'低风险':'R1','中低风险':'R2','中风险':'R3','中高风险':'R4','高风险':'R5'};
+let LIVE_CACHE=null;
+
+function mapRisk(txt){ if(!txt) return null; const m=String(txt).match(/(低风险|中低风险|中高风险|中风险|高风险)/); return m?RISK_MAP_LC[m[1]]:null; }
+function seriesKey(name){ let s=String(name||'').replace(/[\s（）()【】\[\]·、，,。\-—_*]/g,''); s=s.replace(/第?\d+期/g,'').replace(/\d+号/g,'').replace(/(代销|区域专享|区域销售|私行优享|公司专享|机构专享|公积金客群优享|黔臻享|存款及存单|专享|月享|二元结构|企业家优享)/g,'').replace(/[ABC]类?份额/g,''); return s; }
+function detailUrl(it,cat){ if(it.URL_Vld_Inf) return it.URL_Vld_Inf; if(cat==='115'&&it.IvsmPd_Cd) return 'https://finance.ccb.com/cn/finance/ProductDetails.html?PRODUCT_ID='+it.IvsmPd_Cd; if((cat==='094'||cat==='093')&&it.Fnd_Cd_ID) return 'https://www2.ccb.com/chn/home/fund/product/info/product_detail/index.shtml?'+it.Fnd_Cd_ID+'&'+(it.Mkt_Cd||''); return ''; }
+function normLive(it,cat,ptype){
+  const risk=mapRisk(it.PD_Rsk_Grd_ID); if(!risk) return null;
+  const name=(it.ASPD_Nm||'').trim(); if(!name) return null;
+  return {name,risk,type:ptype,issuer:(it.Fnd_Co_Nm||'').trim()||null,status_code:it.ASPD_StCd,status:STATUS_MAP[it.ASPD_StCd],public_flag:it.Rs_MtdCd,agency:it.Agnc_Sale_Ind,detail_url:detailUrl(it,cat),src:'live'};
+}
+function getProxy(){ const v=document.getElementById('proxyUrl').value.trim(); return v||null; }
+async function fetchViaProxy(url){
+  const custom=getProxy();
+  const list = custom ? [custom] : LIVE_PROXIES;
+  let lastErr;
+  for(const px of list){
+    try{
+      const u = px.includes('?') ? px+encodeURIComponent(url) : px+'?url='+encodeURIComponent(url);
+      const res=await fetch(u,{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const t=await res.text();
+      const i=t.indexOf('{'), j=t.lastIndexOf('}');
+      if(i<0||j<0) throw new Error('no json');
+      const d=JSON.parse(t.slice(i,j+1));
+      if(!d.PD_Lst_Itm) throw new Error('no items');
+      return d;
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr||new Error('all proxies failed');
+}
+async function pullLive(){
+  const btn=document.getElementById('liveBtn');
+  const st=document.getElementById('refreshStatus');
+  const progBar=document.getElementById('liveProg').firstElementChild;
+  const pageEl=document.getElementById('livePage');
+  btn.disabled=true; btn.textContent='拉取中…';
+  let collected=[];
+  try{
+    for(const [cat,ptype] of LIVE_CATS){
+      let page=1;
+      while(true){
+        const url=`https://www2.ccb.com/tran/WCCMainPlatV5?CCB_IBSVersion=V5&isAjaxRequest=true&SERVLET_NAME=WCCMainPlatV5&TXCODE=NISP00&pageJump=${page}&amount=${LIVE_AMT}&PD_Ctlg_ECD=${encodeURIComponent(cat)}`;
+        pageEl.textContent=`拉取 ${ptype}… 第 ${page} 页（已得 ${collected.length} 条）`;
+        const d=await fetchViaProxy(url);
+        const batch=d.PD_Lst_Itm||[];
+        for(const it of batch){ const p=normLive(it, cat.split(',')[0], ptype); if(p) collected.push(p); }
+        progBar.style.width = Math.min(100, Math.round(collected.length/7000*100))+'%';
+        if(!batch.length) break;
+        if(page>=(+d.totalPage||999)) break;
+        page++;
+        await new Promise(r=>setTimeout(r,300));
+      }
+    }
+    progBar.style.width='100%';
+    const seen=new Set(), uniq=[];
+    for(const p of collected){ const k=(p.name||'').replace(/\s/g,'')+(p.issuer||''); if(seen.has(k))continue; seen.add(k); uniq.push(p); }
+    applyLive(uniq, st);
+  }catch(e){
+    st.textContent='实时拉取失败：'+(e&&e.message?e.message:e)+'。可换自建代理（Cloudflare Worker），或用②公示Excel。内置实时快照（'+META.live_date+'）仍可用。';
+    progBar.style.width='0%';
+  }finally{
+    btn.disabled=false; btn.textContent='① 拉取建行实时在售清单';
+  }
+}
+function applyLive(liveArr, st){
+  LIVE_CACHE=liveArr;
+  const excel = RAW.filter(p=> p.src!=='live');
+  const liveByName={}, liveBySeries={};
+  for(const p of liveArr){ liveByName[(p.name||'').replace(/\s/g,'')]=p; liveBySeries[seriesKey(p.name)]=p; }
+  let matched=0;
+  for(const p of excel){
+    const hit=liveByName[(p.name||'').replace(/\s/g,'')]||liveBySeries[seriesKey(p.name)];
+    if(hit){ p.live_status=hit.status; p.live_status_code=hit.status_code; if(hit.detail_url) p.detail_url=hit.detail_url; matched++; }
+  }
+  const exNames=new Set(excel.map(p=>(p.name||'').replace(/\s/g,'')));
+  const exSeries=new Set(excel.map(p=>seriesKey(p.name)));
+  let added=0, base=Math.max.apply(null, excel.map(p=>p.id).concat([0]));
+  const liveOnly=[];
+  for(const p of liveArr){
+    if(exNames.has((p.name||'').replace(/\s/g,''))) continue;
+    if(exSeries.has(seriesKey(p.name))) continue;
+    const q=Object.assign({},p); q.id=++base;
+    q.yield_min=q.yield_max=q.yield_mid=null; q.term_days=null; q.term_label=null; q.min_amount=null;
+    q.start_date=null; q.end_date=null; q.open_date=null; q.age_years=null;
+    q.guaranteed=false; q.private=(p.public_flag==='私募'); q.est_drawdown=null; q.sales_target=null; q.note=null;
+    liveOnly.push(q); added++;
+  }
+  RAW = excel.concat(liveOnly);
+  const dd=new Date().toISOString().slice(0,10);
+  META.live_date=dd; META.live_count=liveArr.length; META.live_matched=matched; META.live_added=added;
+  persistLocal(dd);
+  state.source=dd+'（实时）';
+  document.getElementById('hdSub').innerHTML=`数据日期 <b>${dd}</b>（实时）· 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  REF_TODAY=new Date(dd+'T00:00:00');
+  buildControls(); render(); buildFutureRisk(); renderFuture();
+  st.textContent=`✓ 实时拉取成功：${liveArr.length} 只在售，${matched} 只匹配到公示收益率，${added} 只新增。已缓存本地。`;
+  toast('实时数据已刷新 '+liveArr.length+' 只');
+  setTimeout(()=>closeModal('refreshModal'),1500);
+}
+function persistLocal(dd){
+  try{ localStorage.setItem(LS_PRODUCTS, JSON.stringify({date:dd, products:RAW})); localStorage.setItem(LS_LIVE_DATE, dd); }catch(e){}
+}
+function loadLocal(){
+  try{
+    const raw=localStorage.getItem(LS_PRODUCTS);
+    if(raw){ const o=JSON.parse(raw); if(o&&o.products&&o.products.length){ RAW=o.products; if(o.date) META.live_date=o.date; return true; } }
+  }catch(e){}
+  return false;
+}
+async function checkOTA(){
+  toast('检查更新中…');
+  try{
+    const res=await fetch('./version.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('no version');
+    const v=await res.json();
+    if(compareVer(v.version, APP_VERSION)>0){
+      toast('发现新版本 v'+v.version+'，正在刷新…');
+      if(v.update_url && v.update_url!=='./index.html'){ location.href=v.update_url; }
+      else { /* 同目录部署：SW 会自动更新，提示刷新 */ setTimeout(()=>location.reload(),800); }
+    } else {
+      toast('已是最新 v'+APP_VERSION);
+    }
+  }catch(e){
+    toast('更新检查需在 https 环境下使用');
+  }
+}
+function compareVer(a,b){ const A=a.split('.').map(Number),B=b.split('.').map(Number);
+  for(let i=0;i<3;i++){ if((A[i]||0)>(B[i]||0)) return 1; if((A[i]||0)<(B[i]||0)) return -1; } return 0; }
+
+/* ---------- 未来视图（待发售/认购中 + 封闭待开放） ---------- */
+function buildFutureRisk(){
+  const risks=['R0','R1','R2','R3','R4'];
+  const el=document.getElementById('futureRisk');
+  el.innerHTML = risks.map(r=>`<div class="chip ${futureState.risks.indexOf(r)>=0?'on':''}" data-r="${r}">${RISK_LABEL[r]}</div>`).join('');
+  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const r=c.dataset.r; const i=futureState.risks.indexOf(r);
+    if(i>=0) futureState.risks.splice(i,1); else futureState.risks.push(r);
+    c.classList.toggle('on'); renderFuture();
+  });
+}
+function setFutureTab(t){
+  futureState.tab=t;
+  document.querySelectorAll('#futureTabs button').forEach(b=>b.classList.toggle('on', b.dataset.f===t));
+  renderFuture();
+}
+function setType(t){
+  state.types=t;
+  document.getElementById('fType').querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.t===t));
+  render();
+}
+function switchView(v){
+  curView=v;
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  const showMain = (v==='main'||v==='licai');
+  document.getElementById('viewMain').classList.toggle('on', showMain);
+  document.getElementById('viewFuture').classList.toggle('on', v==='future');
+  const banner=document.getElementById('viewBanner');
+  const lock=document.getElementById('typeLock');
+  const fType=document.getElementById('fType');
+  if(v==='licai'){
+    banner.innerHTML='🏦 <b>理财产品专区</b> · 仅展示 R1/R2 银行理财（不含基金/结构性存款）';
+    lock.style.display='block'; fType.style.display='none';
+    setType('理财');
+  } else if(v==='main'){
+    banner.innerHTML='⭐ <b>优选</b> · 理财 + 基金 + 结构性存款，全部 R1/R2';
+    lock.style.display='none'; fType.style.display='';
+    setType('all');
+  }
+  if(v==='future') renderFuture();
+}
+function updateFutureBanner(){
+  const refStr = META.live_date || META.data_date || (REF_TODAY.getFullYear()+'-'+String(REF_TODAY.getMonth()+1).padStart(2,'0')+'-'+String(REF_TODAY.getDate()).padStart(2,'0'));
+  const isLive = !!META.live_date;
+  document.getElementById('futureBanner').innerHTML = isLive
+    ? `以实时清单日期 <b>${refStr}</b> 为基准。<b>认购中 / 可预约 / 预售</b>直接取自建行实时接口；<b>封闭待开放</b>按募集期与期限推算。点右上角【拉新】可刷新实时状态。`
+    : `以内置快照日期 <b>${refStr}</b> 为基准判断“未来”。该期产品认购大多已结束，<b>待发售</b>类可能为空；点右上角【拉新】获取最新公示后，会自动按新日期重新判断。`;
+}
+function futureCard(o){
+  const p=o.p, s=d0(p.start_date), e=d0(p.end_date), o2=d0(p.open_date);
+  const rc=RISK_COLORS[p.risk]||'#888', rl=RISK_LABEL[p.risk]||p.risk;
+  const yTxt = yTxtOf(p, null);
+  const tags=[];
+  if(p.guaranteed) tags.push('<span class="tag g">保本</span>');
+  if(p.private) tags.push('<span class="tag p">私行</span>');
+  tags.push(`<span class="tag">${p.type}</span>`);
+  tags.push(`<span class="tag">预估回撤≤${p.est_drawdown==null?'1.0':p.est_drawdown}%</span>`);
+  let statusHtml='', headMeta='';
+  if(o.kind==='upcoming'){
+    const days=daysBetween(s, REF_TODAY);
+    statusHtml=`<span class="fstatus up">即将发售</span>`;
+    headMeta=`<div class="meta"><span>认购期：<b>${p.start_date} ~ ${p.end_date||'—'}</b></span><span>距开始：<b>${days}天</b></span></div>`;
+  } else if(o.kind==='subscribing'){
+    const days=daysBetween(e, REF_TODAY);
+    statusHtml=`<span class="fstatus up">认购中</span>`;
+    headMeta=`<div class="meta"><span>认购期：<b>${p.start_date} ~ ${p.end_date||'—'}</b></span><span>距结束：<b>${days}天</b></span></div>`;
+  } else if(o.kind==='live'){
+    statusHtml=`<span class="fstatus up">${o.statusName||'可认购'}</span>`;
+    headMeta=`<div class="meta"><span>实时状态：<b>${o.statusName||'可认购'}</b></span><span>（来自实时接口）</span></div>`;
+  } else {
+    const days=daysBetween(o2, REF_TODAY);
+    statusHtml=`<span class="fstatus re">封闭待开放</span>`;
+    headMeta=`<div class="meta"><span>预计开放日：<b>${p.open_date}</b></span><span>剩余封闭：<b>${days}天</b></span></div>`+
+              `<div class="meta"><span>认购期(已结束)：<b>${p.start_date} ~ ${p.end_date||'—'}</b></span><span>期限：<b>${p.term_label}</b></span></div>`;
+  }
+  const detail =
+    `<div class="detail"><div>销售对象：<b>${p.sales_target||'—'}</b></div>`+
+    `<div>机构：<b>${p.issuer||'—'}</b>　起存：<b>${rMB(p.min_amount)}</b></div>`+
+    `<div>备注：<b>${p.note||'—'}</b></div>`+
+    `<div style="color:#b00">理财非存款、不保本保息；开放日/回撤为推算值，仅供参考。</div></div>`;
+  const midMeta = (o.kind==='reopen'||o.kind==='live') ? '' :
+    `<div class="meta"><span>期限：<b>${p.term_label||'—'}</b></span><span>起存：<b>${rMB(p.min_amount)}</b></span></div>`;
+  return `<div class="item" onclick="this.classList.toggle('open')">`+
+    `<div class="top"><div class="nm">${p.name}</div><span class="badge" style="background:${rc}">${rl}</span></div>`+
+    statusHtml + headMeta +
+    `<div class="meta"><span>机构：<b>${p.issuer||'—'}</b></span><span>收益：${yTxt}</span></div>`+
+    midMeta + `<div class="tags">${tags.join('')}</div>` + detail + `</div>`;
+}
+function renderFuture(){
+  if(!document.getElementById('futureList')) return;
+  updateFutureBanner();
+  const f=futureState, ref=REF_TODAY;
+  const base = RAW.filter(p=> f.risks.indexOf(p.risk)>=0 && !(f.noPriv && p.private));
+  const sub=[], reo=[];
+  base.forEach(p=>{
+    const code = p.status_code || p.live_status_code;
+    const stName = p.status || p.live_status;
+    if(code && LIVE_FUTURE_CODES.indexOf(code)>=0){
+      sub.push({p, kind:'live', statusName:stName, statusCode:code});
+      return;
+    }
+    const s=d0(p.start_date), e=d0(p.end_date), o=d0(p.open_date);
+    if(!s || !e) return;
+    if(s>ref) sub.push({p,kind:'upcoming'});
+    else if(s<=ref && ref<=e) sub.push({p,kind:'subscribing'});
+    if(e<ref && o && o>ref) reo.push({p,kind:'reopen'});
+  });
+  sub.sort((a,b)=> (d0(a.p.start_date)||0) - (d0(b.p.start_date)||0));
+  reo.sort((a,b)=> d0(a.p.open_date) - d0(b.p.open_date));
+  const showSub = (f.tab==='all'||f.tab==='subscribe');
+  const showReo = (f.tab==='all'||f.tab==='reopen');
+  const parts=[];
+  if(showSub){
+    parts.push(`<div class="fsec">待发售 / 认购中 <span class="cnt">${sub.length} 只</span></div>`);
+    parts.push(sub.length ? sub.map(futureCard).join('') : `<div class="fempty">暂无：当前没有即将发售或正在认购的产品（拉新后可能更新）</div>`);
+  }
+  if(showReo){
+    parts.push(`<div class="fsec">封闭待开放 <span class="cnt">${reo.length} 只</span></div>`);
+    parts.push(reo.length ? reo.map(futureCard).join('') : `<div class="fempty">暂无：当前没有已封闭且明确在未来开放的产品</div>`);
+  }
+  document.getElementById('futureList').innerHTML = parts.join('');
+  document.getElementById('futureStats').innerHTML =
+    `未来产品（R1/R2 优质）合计 <b>${sub.length+reo.length}</b> 只 · 待发售/认购中 <b>${sub.length}</b> · 封闭待开放 <b>${reo.length}</b>`;
+}
+
+/* ---------- UI helpers ---------- */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); }));
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ---------- 启动 ---------- */
+(function initFromURL(){
+  try{
+    const q=new URLSearchParams(location.search);
+    if(q.get('reco')) state.limit=Number(q.get('reco'))||'all';
+    const r=q.get('r'); if(r) state.risks=r.split(',').filter(x=>['R0','R1','R2','R3','R4'].includes(x));
+    if(q.get('modal')) setTimeout(()=>openModal(q.get('modal')),300);
+    if(q.get('view')==='future') setTimeout(()=>switchView('future'),100);
+    if(q.get('view')==='licai') setTimeout(()=>switchView('licai'),100);
+  }catch(e){}
+})();
+function boot(){
+  loadLocal(); // 若用户此前手动拉过实时数据，优先还原
+  const liveTag = META.live_date ? ` · 实时快照 <b>${META.live_date}</b>` : '';
+  document.getElementById('hdSub').innerHTML=`内置公示 <b>${META.data_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  document.getElementById('aboutDate').textContent=`${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`;
+  buildControls(); render();
+  buildFutureRisk(); renderFuture();
+  switchView('main'); // 初始化顶部 banner（默认优选）
+  // PWA 注册
+  if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }catch(e){} }
+}
+boot();
+</script>
+</body>
+</html>

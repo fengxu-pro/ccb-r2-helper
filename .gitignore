@@ -1,0 +1,44 @@
+# ===== 调试 / 中间产物（不上仓库） =====
+.workbuddy/
+
+*.shtml
+nisp00*.json
+live_products.json
+products.json
+tp2.json
+t1.json
+t2.json
+t3.json
+t5.json
+fetch_list.json
+extract_result.json
+det_*.html
+det_*.txt
+pi*.shtml
+pi2.shtml
+fpi.shtml
+product_info*.html
+product_info*.js
+fx_index.html
+ProductDetails.js
+test_*.html
+test_net.html
+
+fetch_pdf_v2.py
+fetch_live.py
+merge_live.py
+clean.py
+parse_xlsx.py
+gen_icon.py
+ccb_products.xlsx
+cj.txt
+
+verify_*.png
+app-preview*.png
+
+# 保留（运行时必需）：
+#   index.html  data.js  version.json  manifest.webmanifest  sw.js
+#   libs/  icon-192.png  icon-512.png  README*.md
+
+# 一次性数据合并脚本(依赖被忽略的中间产物)
+merge_data.js
