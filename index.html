@@ -74,6 +74,7 @@
   .ret1m b.down{color:#1b8a3a; font-weight:800;}
   .ret1m b.flat{color:var(--sub); font-weight:700;}
   .ret1m .est{font-size:11px; color:#9aa0aa;}
+  .ret1m .ann{margin-left:6px; font-size:12.5px; color:var(--sub);}
   .analysis{margin-top:9px; font-size:12.5px; line-height:1.55; color:#334155; background:#f7f9fc;
     border-left:3px solid var(--red); border-radius:6px; padding:8px 10px;}
   .analysis .ai{color:var(--red); font-weight:700; margin-right:3px;}
@@ -311,7 +312,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -562,6 +563,9 @@ function render(){
   if(!shown.length){ listEl.innerHTML='<div class="card" style="text-align:center;color:var(--sub)">没有符合条件的产品，请放宽筛选条件。</div>'; return; }
   listEl.innerHTML = shown.map((o,idx)=>{
     const p=o.p, s=o.s;
+    const r1=p.ret_1m;
+    const r1cls = r1==null?'flat':(r1>0?'up':(r1<0?'down':'flat'));
+    const r1ann = r1==null?null:((Math.pow(1+r1/100,12)-1)*100).toFixed(1);
     const off = p.src!=='live' && !p.live_status_code;  // 已下架：旧公示、不在实时在售名单
     const yTxt = yTxtOf(p, s);
     const tags=[];
@@ -593,7 +597,7 @@ function render(){
       </div>
       <div class="ret1m"><span class="lbl">近1月收益</span>${
         p.ret_1m!=null
-          ? `<b class="${p.ret_1m>0?'up':(p.ret_1m<0?'down':'flat')}">${p.ret_1m>0?'+':''}${p.ret_1m}%</b>${p.ret_1m_est?'<span class="est">估算</span>':''}`
+          ? `<b class="${r1cls}">${r1>0?'+':''}${r1}%</b>${p.ret_1m_est?'<span class="est">估算</span>':''}<span class="ann">折算年化 <b class="${r1cls}">${r1ann>=0?'+':''}${r1ann}%</b></span>`
           : `<b class="flat">—</b>`
       }</div>
       <div class="analysis"><span class="ai">💡 建议</span>${analysisOf(p)}</div>
