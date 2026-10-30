@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.fengxu.ccbhelper",
+    "sha256_cert_fingerprints": ["a4ad1709834cf71a164350885b4d100b9a19237f85f9a5d9f01116d5977cbd82"]
+  }
+}]

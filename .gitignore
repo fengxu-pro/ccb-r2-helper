@@ -49,6 +49,16 @@ cj.txt
 verify_*.png
 app-preview*.png
 
+# APK 构建中间产物与签名密钥（密钥不上仓库）
+apk/flat.zip
+apk/base*.apk
+apk/aligned.apk
+apk/gen/
+apk/classes/
+apk/dexout/
+apk/ccb-helper.keystore
+apk/wealth_det.html
+
 # 保留（运行时必需）：
 #   index.html  data.js  version.json  manifest.webmanifest  sw.js
 #   libs/  icon-192.png  icon-512.png  README*.md

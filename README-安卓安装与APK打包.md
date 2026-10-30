@@ -13,8 +13,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `index.html` | 应用本体（界面 + 筛选/评分/推荐 + 实时状态徽章 + 未来页 + 拉新 + OTA） |
-| `data.js` | 内置数据快照：**2026-10-28 实时接口快照（3532 只，含 3238 只实时在售 + 294 只公示明细）**；其中约 1000+ 只 R1/R2 的**真实业绩比较基准**由 2026-10-29 从官方 PDF 详情页抓取提取（带 `官方基准 · 2026-10-29` 标签） |
+| `index.html` | 应用本体（界面 + 筛选/**排序栏**/评分/推荐 + 实时状态徽章 + 实时收益指标 + 未来页 + 拉新 + OTA） |
+| `data.js` | 内置数据快照：**2026-10-28 实时接口快照（3532 只，含 3238 只实时在售 + 294 只公示明细）**；其中 **613 只在售代销理财带实时收益指标**（2026-10-30 自建行财富频道 NLCQ11 接口抓取：现金管理类=七日年化收益率、开放式=成立以来年化收益率、均带数据区间与最新净值；封闭式=最新业绩比较基准）；另约 1000 只 R1/R2 的**业绩比较基准**由 2026-10-29 从官方 PDF 详情页抓取（带 `官方基准 · 2026-10-29` 标签） |
 | `libs/xlsx.full.min.js` | SheetJS（浏览器端解析公示 Excel，供「拉新/导入」用） |
 | `manifest.webmanifest` | PWA 清单（安装到主屏幕的图标/名称/全屏配置） |
 | `sw.js` | Service Worker（离线缓存 + 版本自动更新 = OTA 基础） |
@@ -31,24 +31,47 @@
 
 ## 如何在安卓手机上使用
 
-### 方式 A（推荐）：部署到 https 后「添加到主屏幕」，获得原生 App 体验
-1. 把整个文件夹上传到任意 https 静态托管（如 CloudStudio 部署、腾讯云 COS 静态网站、GitHub Pages 等）。
-2. 安卓 Chrome 打开该网址 → 菜单 → **「添加到主屏幕 / 安装应用」**。
-3. 桌面出现独立图标，打开即全屏运行，**离线可用**（Service Worker 缓存）。
-4. 以后更新：把新版文件覆盖上传同一地址，SW 检测到变化**自动 OTA 更新**；也可点 App 内「更新」按钮检查 `version.json` 版本号手动触发。
+### 方式 A（零门槛）：直接下载安装 APK（推荐）
+1. 手机浏览器打开 APK 直链下载：**<https://fengxu-pro.github.io/ccb-r2-helper/ccb-r2-helper-v1.0.0.apk>**
+2. 下载完成后点开安装包；系统提示「未知来源应用」时，选择**允许/仍要安装**（各品牌路径：设置 → 安全 → 安装未知应用）。
+3. 桌面出现「**建行优选**」独立图标，点开即全屏运行。App 内容与官网版完全同源：
+   - 数据/页面全部来自 GitHub Pages（HTTPS），**Service Worker 离线缓存与 OTA 自动更新在 App 内照常生效**；
+   - 右上角「更新」按钮、底部「拉新」等一切功能不变；
+   - 升级 App 内容无需重装 APK——在 Pages 发布新版后，App 内点「更新」即可。
+4. App 外部链接（建行官方详情页等）会自动交给系统浏览器打开。
 
-### 方式 B：打包成标准原生 APK（.apk 安装包）
-需要一台装有 JDK 17 + Android SDK 的机器（或让 AI 助手在本地搭建），执行：
+### 方式 B（备选）：不装 APK，直接「添加到主屏幕」
+1. 安卓 Chrome 打开 <https://fengxu-pro.github.io/ccb-r2-helper/> → 菜单 → **「添加到主屏幕 / 安装应用」**。
+2. 体验与 APK 基本一致（PWA，离线可用）。
+
+### 方式 C：重新打包 / 更新 APK（本机工具链）
+本机已具备完整工具链（无需下载）：
+- JDK 17：`C:\Users\fengxu\.workbuddy\binaries\android\jdk17\jdk-17.0.20.1+1`
+- Android SDK：`C:\Users\fengxu\.workbuddy\binaries\android\sdk`（platforms/android-35 + build-tools/35.0.0）
+
+构建流程（aapt2 → javac → d8 → zip → zipalign → apksigner）：
 
 ```bash
-npm install -g @bubblewrap/cli
-bubblewrap init --manifest https://你的域名/manifest.webmanifest
-bubblewrap build
+cd apk
+aapt2 compile --dir res -o flat.zip
+aapt2 link -o base.apk -I <sdk>/platforms/android-35/android.jar \
+  --manifest AndroidManifest.xml -R flat.zip --java gen --auto-add-overlay
+javac -encoding UTF-8 -source 8 -target 8 -cp <sdk>/platforms/android-35/android.jar \
+  -d classes gen/com/fengxu/ccbhelper/R.java java/com/fengxu/ccbhelper/MainActivity.java
+d8 --release --lib <sdk>/platforms/android-35/android.jar --output dexout classes/com/fengxu/ccbhelper/*.class
+# 把 classes.dex 注入 base.apk（python zipfile），再：
+zipalign -f 4 base_dex.apk aligned.apk
+apksigner sign --ks ccb-helper.keystore --ks-key-alias ccbhelper \
+  --ks-pass pass:ccbhelper2026 --key-pass pass:ccbhelper2026 \
+  --out ../ccb-r2-helper-v1.0.0.apk aligned.apk
 ```
 
-生成 `app-release-signed.apk`（TWA 封装，复用上面的 PWA 全部能力，包括 OTA）。
+> ⚠️ 签名密钥：`apk/ccb-helper.keystore`（口令 ccbhelper2026，别名 ccbhelper，证书 SHA-256
+> `a4ad1709834cf71a164350885b4d100b9a19237f85f9a5d9f01116d5977cbd82`）。
+> **请备份好该文件**——升级安装包必须用同一密钥签名，否则手机上无法覆盖安装。
+> 该密钥未提交到仓库（已 gitignore），仅保存在本机。
 
-### 方式 C：局域网快速试用
+### 方式 D：局域网快速试用
 电脑上 `python -m http.server 8000`，手机连同一 WiFi 访问 `http://电脑IP:8000`（仅测试，http 下 PWA 安装/OTA 不可用）。
 
 ## 实时拉新（在 App 内「拉新」）
