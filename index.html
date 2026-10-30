@@ -68,6 +68,15 @@
   .item .meta{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:12.5px; color:var(--sub);}
   .item .meta b{color:var(--txt); font-weight:600;}
   .yield{color:var(--up); font-weight:700;}
+  .ret1m{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:13.5px; align-items:baseline;}
+  .ret1m .lbl{color:var(--sub); font-size:12.5px;}
+  .ret1m b.up{color:var(--up); font-weight:800;}
+  .ret1m b.down{color:#1b8a3a; font-weight:800;}
+  .ret1m b.flat{color:var(--sub); font-weight:700;}
+  .ret1m .est{font-size:11px; color:#9aa0aa;}
+  .analysis{margin-top:9px; font-size:12.5px; line-height:1.55; color:#334155; background:#f7f9fc;
+    border-left:3px solid var(--red); border-radius:6px; padding:8px 10px;}
+  .analysis .ai{color:var(--red); font-weight:700; margin-right:3px;}
   .tags{display:flex; gap:5px; flex-wrap:wrap; margin-top:7px;}
   .tag{font-size:11px; padding:2px 7px; border-radius:6px; background:var(--chip); color:var(--sub);}
   .tag.g{background:#e6f4ea; color:#1e7d34;}
@@ -302,7 +311,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -468,6 +477,7 @@ function sortList(list){
   const arr=list.map(p=>({p,s:scoreProduct(p)}));
   arr.sort((a,b)=>{
     if(k==='perf') return (b.p.perf_mid??-1)-(a.p.perf_mid??-1);
+    if(k==='ret1m') return (b.p.ret_1m??-999)-(a.p.ret_1m??-999);
     if(k==='yield') return (b.p.yield_mid??-1)-(a.p.yield_mid??-1);
     if(k==='term') return (a.p.term_days??-1)-(b.p.term_days??-1);
     if(k==='amt') return (a.p.min_amount??1e9)-(b.p.min_amount??1e9);
@@ -515,6 +525,30 @@ function yTxtOf(p, s){
   if(p.yield_source==='pdf_formula') return `<span class="yield">挂钩型</span> <span class="official">基准随市场浮动</span>`;
   return `<span class="yield">净值型</span> <span class="stale">· 无官方基准，按风险估值${s&&s.yUsed?(' '+s.yUsed+'%'):''}</span>`;
 }
+// 一行投资分析/建议：基于风险等级、近1月收益、收益特征、流动性、期限
+function analysisOf(p){
+  const r1=p.ret_1m;
+  const isCash = (p.perf_type||'').indexOf('七日')>=0 || (p.name||'').indexOf('现金管理')>=0;
+  const closed = (p.name||'').indexOf('封闭')>=0 || (p.term_label||'').indexOf('封闭')>=0;
+  const hold = (p.name||'').indexOf('最低持有')>=0 || (p.term_label||'').indexOf('持有')>=0;
+  let s='';
+  if(p.risk==='R1'){
+    s = isCash
+      ? 'R1低风险现金类，本金几乎无波动、可灵活申赎，适合替代活期存放短期闲钱；留意大额赎回与节假日收益结转规则。'
+      : 'R1低风险净值型，波动极小，适合保守型资金稳健增值；建议长期持有、减少频繁申赎。';
+  } else if(p.risk==='R2'){
+    if(closed) s='R2中低风险封闭式，建议持有到期以平滑净值波动；适合半年以上闲置、追求稳健增值的资金。';
+    else if(hold) s='R2中低风险且设最短持有期，兼顾收益与安全，适合能锁定资金的稳健型投资者做底仓。';
+    else s='R2中低风险、兼顾收益与流动性，适合稳健型投资者做主力配置；可分批买入降低时点风险。';
+  } else {
+    s='风险等级偏高，仅建议风险承受力强、已配好底仓的资金小比例参与。';
+  }
+  if(r1!=null){
+    const trend = r1>0?'近1月正收益':(r1<0?'近1月小幅回撤':'近1月持平');
+    s = `${trend}（${r1>0?'+':''}${r1}%${p.ret_1m_est?'·估算':''}）：${s}`;
+  }
+  return s;
+}
 function render(){
   const filtered=applyFilters(RAW);
   const scored=sortList(filtered);
@@ -557,6 +591,12 @@ function render(){
         <span>期限：<b>${p.term_label||'—'}</b></span>
         <span>起存：<b>${rMB(p.min_amount)}</b></span>
       </div>
+      <div class="ret1m"><span class="lbl">近1月收益</span>${
+        p.ret_1m!=null
+          ? `<b class="${p.ret_1m>0?'up':(p.ret_1m<0?'down':'flat')}">${p.ret_1m>0?'+':''}${p.ret_1m}%</b>${p.ret_1m_est?'<span class="est">估算</span>':''}`
+          : `<b class="flat">—</b>`
+      }</div>
+      <div class="analysis"><span class="ai">💡 建议</span>${analysisOf(p)}</div>
       <div class="tags">${tags.join('')}</div>
       ${detail}
       <div class="detail">
@@ -573,7 +613,7 @@ function render(){
 /* ---------- 控件构建 ---------- */
 function buildControls(){
   // 排序栏
-  const sorts=[['score','综合评分'],['perf','最新收益'],['yield','业绩基准'],['term','期限短→长'],['amt','起存低→高'],['dd','回撤低→高']];
+  const sorts=[['score','综合评分'],['ret1m','近1月收益'],['perf','最新收益'],['yield','业绩基准'],['term','期限短→长'],['amt','起存低→高'],['dd','回撤低→高']];
   const sb=document.getElementById('sortBar');
   sb.innerHTML = '<span class="lbl">排序</span>' + sorts.map(x=>
     `<button data-s="${x[0]}" class="${state.sort===x[0]?'on':''}">${x[1]}</button>`).join('');
@@ -980,6 +1020,7 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
   try{
     const q=new URLSearchParams(location.search);
     if(q.get('reco')) state.limit=Number(q.get('reco'))||'all';
+    const so=q.get('sort'); if(so) state.sort=so;
     const r=q.get('r'); if(r) state.risks=r.split(',').filter(x=>['R0','R1','R2','R3','R4'].includes(x));
     if(q.get('modal')) setTimeout(()=>openModal(q.get('modal')),300);
     if(q.get('view')==='future') setTimeout(()=>switchView('future'),100);

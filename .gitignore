@@ -65,3 +65,8 @@ apk/wealth_det.html
 
 # 一次性数据合并脚本(依赖被忽略的中间产物)
 merge_data.js
+fetch_1m.py
+merge_1m.py
+wealth_1m.json
+pp2.js
+*.idsig
