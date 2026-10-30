@@ -26,6 +26,19 @@ test_net.html
 
 fetch_pdf_v2.py
 fetch_live.py
+fetch_perf.py
+merge_perf.py
+wealth_perf.json
+nlcq11.json
+nlcq40.json
+nl11_list.json
+wealth_det.html
+product_detail.js
+comp.js
+pl.js
+pp.js
+tmp.js
+tmp_list.html
 merge_live.py
 clean.py
 parse_xlsx.py
