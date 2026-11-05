@@ -266,10 +266,10 @@
     <button class="close" onclick="closeModal('refreshModal')">×</button>
     <h3>拉取最新数据</h3>
 
-    <p>① <b>实时在售清单</b>（推荐）：直连建行接口，覆盖当前所有在售理财/基金/结构性存款，含实时“认购/申购/预售”状态。需经 CORS 代理，内置多个公共代理，失败时可粘贴你自建的代理（见说明）。</p>
-    <label style="font-size:13px;color:var(--sub);font-weight:600;">CORS 代理地址（可改，留空用内置公共代理）</label>
+    <p>① <b>每日快照（推荐）</b>：默认从本站的每日更新服务器<b>同源直连</b>拉取（每天 8 点自动刷新，无需任何代理，手机上也能成功）。失败时退回 CORS 代理直连建行接口（海外代理在手机上可能不稳定）。</p>
+    <label style="font-size:13px;color:var(--sub);font-weight:600;">CORS 代理地址（仅当同源快照不可用时使用，留空用内置公共代理）</label>
     <input type="text" id="proxyUrl" placeholder="如 https://你的worker.dev/?url=" style="margin-top:6px;">
-    <button class="btn" id="liveBtn" onclick="pullLive()">① 拉取建行实时在售清单</button>
+    <button class="btn" id="liveBtn" onclick="pullLive()">① 拉取建行最新在售/收益数据</button>
     <div class="prog" id="liveProg"><i></i></div>
     <div style="font-size:11px;color:var(--sub)" id="livePage">等待开始…</div>
 
@@ -283,7 +283,7 @@
       <button class="btn sub" onclick="document.getElementById('fileInput').click()">③ 导入本地 Excel 文件</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="importFile(event)">
     </div>
-    <div class="warn">提示：公共代理可能不稳定，若 ① 失败：最稳方案是部署一个 Cloudflare Worker 代理（说明页有现成代码），把地址粘贴到上方即可。无论是否拉新，内置的实时快照（2026-10-28）始终可用。</div>
+    <div class="warn">提示：① 现已默认走同源每日快照，手机上也能成功；真正实时状态由每天 8 点的自动任务更新进内置数据，打开即用。无论是否拉新，内置快照始终可用。</div>
     <div class="status" id="refreshStatus"></div>
   </div>
 </div>
@@ -312,7 +312,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.6.0';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -788,19 +788,36 @@ async function fetchViaProxy(url){
   try{ return await anySuccess(LIVE_PROXIES.map(px=>tryProxy(px,url))); }
   catch(e){ throw new Error('所有代理均失败或超时（12s），请稍后重试或自建代理'); }
 }
+/* 同源拉新：从 Pages 直接取每日自动快照 live.json，零 CORS 零代理 */
+async function pullLiveSameOrigin(){
+  const res=await fetch('./live.json',{cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const d=await res.json();
+  if(!d.items||!d.items.length) throw new Error('empty live.json');
+  return d;
+}
 async function pullLive(){
   const btn=document.getElementById('liveBtn');
   const st=document.getElementById('refreshStatus');
   const progBar=document.getElementById('liveProg').firstElementChild;
   const pageEl=document.getElementById('livePage');
   btn.disabled=true; btn.textContent='拉取中…';
+  progBar.style.width='30%';
+  pageEl.textContent='从更新服务器拉取每日快照（同源直连，无需代理）…';
+  try{
+    /* 首选：同源 live.json（每日 8 点定时任务生成，必成功） */
+    const d=await pullLiveSameOrigin();
+    progBar.style.width='100%';
+    applyLive(d.items, st, d.date);
+    return;
+  }catch(e0){ /* live.json 不可用时退回 CORS 代理直连建行 */ }
   let collected=[];
   try{
     for(const [cat,ptype] of LIVE_CATS){
       let page=1;
       while(true){
         const url=`https://www2.ccb.com/tran/WCCMainPlatV5?CCB_IBSVersion=V5&isAjaxRequest=true&SERVLET_NAME=WCCMainPlatV5&TXCODE=NISP00&pageJump=${page}&amount=${LIVE_AMT}&PD_Ctlg_ECD=${encodeURIComponent(cat)}`;
-        pageEl.textContent=`拉取 ${ptype}… 第 ${page} 页（已得 ${collected.length} 条）`;
+        pageEl.textContent=`代理直连拉取 ${ptype}… 第 ${page} 页（已得 ${collected.length} 条）`;
         const d=await fetchViaProxy(url);
         const batch=d.PD_Lst_Itm||[];
         for(const it of batch){ const p=normLive(it, cat.split(',')[0], ptype); if(p) collected.push(p); }
@@ -816,13 +833,13 @@ async function pullLive(){
     for(const p of collected){ const k=(p.name||'').replace(/\s/g,'')+(p.issuer||''); if(seen.has(k))continue; seen.add(k); uniq.push(p); }
     applyLive(uniq, st);
   }catch(e){
-    st.textContent='实时拉取失败：'+(e&&e.message?e.message:e)+'。可换自建代理（Cloudflare Worker），或用②公示Excel。内置实时快照（'+META.live_date+'）仍可用。';
+    st.textContent='拉取失败：'+(e&&e.message?e.message:e)+'。每日快照会自动更新到内置数据里（点右上「更新」获取），无需代理。内置快照（'+META.live_date+'）仍可用。';
     progBar.style.width='0%';
   }finally{
     btn.disabled=false; btn.textContent='① 拉取建行实时在售清单';
   }
 }
-function applyLive(liveArr, st){
+function applyLive(liveArr, st, liveDate){
   LIVE_CACHE=liveArr;
   const excel = RAW.filter(p=> p.src!=='live');
   const liveByName={}, liveBySeries={};
@@ -846,7 +863,8 @@ function applyLive(liveArr, st){
     liveOnly.push(q); added++;
   }
   RAW = excel.concat(liveOnly);
-  const dd=new Date().toISOString().slice(0,10);
+  const now=new Date();
+  const dd = liveDate || new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
   META.live_date=dd; META.live_count=liveArr.length; META.live_matched=matched; META.live_added=added;
   persistLocal(dd);
   state.source=dd+'（实时）';
@@ -863,7 +881,11 @@ function persistLocal(dd){
 function loadLocal(){
   try{
     const raw=localStorage.getItem(LS_PRODUCTS);
-    if(raw){ const o=JSON.parse(raw); if(o&&o.products&&o.products.length){ RAW=o.products; if(o.date) META.live_date=o.date; return true; } }
+    if(raw && META.live_date){
+      const o=JSON.parse(raw);
+      /* 只有本地缓存比内置快照新时才用（内置快照每日自动更新，避免旧拉新数据遮挡新数据） */
+      if(o&&o.products&&o.products.length&&o.date&&o.date>=META.live_date){ RAW=o.products; META.live_date=o.date; return true; }
+    }
   }catch(e){}
   return false;
 }
@@ -1033,7 +1055,7 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
   }catch(e){}
 })();
 function boot(){
-  loadLocal(); // 若用户此前手动拉过实时数据，优先还原
+  loadLocal(); // 仅当本地缓存比内置快照新时还原
   const liveTag = META.live_date ? ` · 实时快照 <b>${META.live_date}</b>` : '';
   document.getElementById('hdSub').innerHTML=`内置公示 <b>${META.data_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
   document.getElementById('aboutDate').textContent=`${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`;
@@ -1042,6 +1064,21 @@ function boot(){
   switchView('main'); // 初始化顶部 banner（默认优选）
   // PWA 注册
   if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }catch(e){} }
+  // 启动静默检查 OTA：每日快照发布后自动升级（每会话至多自动刷新一次，防循环）
+  setTimeout(autoOTA, 3000);
+}
+async function autoOTA(){
+  try{
+    if(sessionStorage.getItem('ccb_ota_done')) return;
+    const res=await fetch('./version.json',{cache:'no-store'});
+    if(!res.ok) return;
+    const v=await res.json();
+    if(compareVer(v.version, APP_VERSION)>0){
+      sessionStorage.setItem('ccb_ota_done','1');
+      toast('发现新版本 v'+v.version+'，正在更新…');
+      setTimeout(()=>location.reload(),1200);
+    }
+  }catch(e){/* 离线/网络失败静默跳过 */}
 }
 boot();
 </script>

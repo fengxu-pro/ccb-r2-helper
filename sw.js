@@ -1,4 +1,4 @@
-const CACHE = 'ccb-r1r2-v1';
+const CACHE = 'ccb-r1r2-v2';
 const ASSETS = [
   './',
   './index.html',
