@@ -1,10 +1,10 @@
 {
   "version": "1.5.2",
-  "notes": "修复「拉取最新数据」卡死：每个公共代理加12秒超时并并行竞速，新增备用代理；不再无限等待。",
+  "notes": "自动快照 2026-11-05：实时在售/收益指标/近1月收益已刷新。",
   "min_data_date": "2026-04-15",
-  "live_date": "2026-10-28",
+  "live_date": "2026-11-05",
   "pdf_yield_date": "2026-10-29",
-  "perf_date": "2026-10-30",
-  "ret_1m_date": "2026-10-30",
+  "perf_date": "2026-11-05",
+  "ret_1m_date": "2026-11-05",
   "update_url": "https://fengxu-pro.github.io/ccb-r2-helper/index.html"
 }
