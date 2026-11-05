@@ -312,7 +312,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -322,7 +322,8 @@ const LS_PRODUCTS = 'ccb_products_v1', LS_LIVE_DATE = 'ccb_live_date_v1', LS_PRO
 const LIVE_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?url=',
-  'https://api.codetabs.com/v1/proxy?quest='
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://thingspro.io/cors?url='
 ];
 const TODAY = new Date('2026-10-28');
 
@@ -768,24 +769,24 @@ function normLive(it,cat,ptype){
   return {name,risk,type:ptype,issuer:(it.Fnd_Co_Nm||'').trim()||null,status_code:it.ASPD_StCd,status:STATUS_MAP[it.ASPD_StCd],public_flag:it.Rs_MtdCd,agency:it.Agnc_Sale_Ind,detail_url:detailUrl(it,cat),src:'live'};
 }
 function getProxy(){ const v=document.getElementById('proxyUrl').value.trim(); return v||null; }
+function fetchTimeout(u,ms){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),ms||12000); return fetch(u,{cache:'no-store',signal:c.signal}).finally(()=>clearTimeout(t)); }
+function anySuccess(ps){ return new Promise((res,rej)=>{ let n=ps.length,firstErr; if(!n){rej(new Error('no proxy'));return;} ps.forEach(p=>p.then(res,e=>{ if(!firstErr)firstErr=e; if(--n===0) rej(firstErr||new Error('all failed')); })); }); }
+async function tryProxy(px,url){
+  const u = px.includes('?') ? px+encodeURIComponent(url) : px+'?url='+encodeURIComponent(url);
+  const res=await fetchTimeout(u,12000);
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const t=await res.text();
+  const i=t.indexOf('{'), j=t.lastIndexOf('}');
+  if(i<0||j<0) throw new Error('no json');
+  const d=JSON.parse(t.slice(i,j+1));
+  if(!d.PD_Lst_Itm) throw new Error('no items');
+  return d;
+}
 async function fetchViaProxy(url){
   const custom=getProxy();
-  const list = custom ? [custom] : LIVE_PROXIES;
-  let lastErr;
-  for(const px of list){
-    try{
-      const u = px.includes('?') ? px+encodeURIComponent(url) : px+'?url='+encodeURIComponent(url);
-      const res=await fetch(u,{cache:'no-store'});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const t=await res.text();
-      const i=t.indexOf('{'), j=t.lastIndexOf('}');
-      if(i<0||j<0) throw new Error('no json');
-      const d=JSON.parse(t.slice(i,j+1));
-      if(!d.PD_Lst_Itm) throw new Error('no items');
-      return d;
-    }catch(e){ lastErr=e; }
-  }
-  throw lastErr||new Error('all proxies failed');
+  if(custom) return tryProxy(custom,url);
+  try{ return await anySuccess(LIVE_PROXIES.map(px=>tryProxy(px,url))); }
+  catch(e){ throw new Error('所有代理均失败或超时（12s），请稍后重试或自建代理'); }
 }
 async function pullLive(){
   const btn=document.getElementById('liveBtn');
