@@ -84,16 +84,31 @@ run(['git', 'add', 'data.js', 'bob.js', 'cmb.js', 'bcm.js', 'version.json', 'liv
      'wealth_perf.json', 'wealth_1m.json', 'nisp00.json'], 'git-add', retries=1, timeout=300)
 msg = f"auto snapshot {TODAY}"
 subprocess.run(['git', 'commit', '-m', msg], capture_output=True)
-for i in range(1, 9):
+pushed = False
+for i in range(1, 4):   # git 协议不通时别死等，尽快切 API 通道
     r = subprocess.run(['git', 'push', 'origin', 'HEAD'], capture_output=True, timeout=180)
     tail = ((r.stdout or b'') + (r.stderr or b'')).decode('utf-8', errors='ignore').strip().splitlines()
     for ln in tail[-2:]:
         print("   |", ln, flush=True)
     if r.returncode == 0:
-        print('PUSH OK', flush=True)
+        print('PUSH OK (git)', flush=True)
+        pushed = True
         break
-    time.sleep(10 * i)
-else:
-    print('PUSH FAILED - 数据已在本地更新，可稍后手动 git push', flush=True)
+    time.sleep(5 * i)
+if not pushed:
+    # github.com:443 在国内常被重置；api.github.com 仍可达，用 Git Data API 等价发布
+    print('git push 失败，切换 GitHub API 通道…', flush=True)
+    try:
+        r = subprocess.run([PY, 'push_via_api.py'], capture_output=True, timeout=900)
+        out = ((r.stdout or b'') + (r.stderr or b'')).decode('utf-8', errors='ignore')
+        for ln in out.strip().splitlines()[-6:]:
+            print("   |", ln, flush=True)
+        if r.returncode == 0 and 'PUBLISH_OK' in out:
+            print('PUSH OK (api)', flush=True)
+            pushed = True
+    except Exception as e:
+        print('API 通道异常:', e, flush=True)
+if not pushed:
+    print('PUSH FAILED - 数据已在本地更新，可稍后手动运行 push_via_api.py', flush=True)
     sys.exit(2)
 print('DONE', flush=True)
