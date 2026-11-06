@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#c8102e" />
+<meta name="theme-color" content="#004E9C" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" href="icon-192.png" />
 <link rel="apple-touch-icon" href="icon-512.png" />
-<title>建行 R1/R2 优选助手</title>
+<title>R1/R2 优选助手 · 多银行</title>
 <style>
   :root{
-    --red:#c8102e; --red-d:#9e0c24; --bg:#f5f6fa; --card:#ffffff;
+    /* --red/--red-d 为「当前银行主题色」，切换银行时由 applyBankTheme() 动态改写 */
+    --red:#004E9C; --red-d:#003a75; --bg:#f5f6fa; --card:#ffffff;
     --line:#e6e8ee; --txt:#1f2430; --sub:#6b7280; --up:#d8392b; --chip:#eef1f7;
     --r0:#2e7d32; --r1:#00897b; --r2:#1565c0; --r3:#ef6c00; --r4:#c62828;
   }
@@ -20,14 +21,40 @@
     font-size:15px; -webkit-text-size-adjust:100%;}
   .app{max-width:520px; margin:0 auto; min-height:100vh; padding-bottom:84px;}
   header{position:sticky; top:0; z-index:20; background:linear-gradient(135deg,var(--red),var(--red-d));
-    color:#fff; padding:14px 16px 12px; box-shadow:0 2px 8px rgba(0,0,0,.15);}
-  header h1{margin:0; font-size:19px; font-weight:700; letter-spacing:.5px;}
-  header .sub{margin-top:3px; font-size:12px; opacity:.9; display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    color:#fff; padding:10px 14px 9px; box-shadow:0 2px 8px rgba(0,0,0,.15);}
+  .hdr1{display:flex; align-items:center; gap:8px; position:relative; z-index:2;}
+  header h1{margin:0; font-size:17px; font-weight:700; letter-spacing:.3px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0;}
+  header .sub{margin-top:5px; font-size:12px; opacity:.92; display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    position:relative; z-index:1;}
   header .sub b{font-weight:600;}
-  .hbtns{position:absolute; right:12px; top:12px; display:flex; gap:8px;}
+  .hdracts{margin-left:auto; display:flex; align-items:center; gap:6px; flex:none;}
   .hbtn{background:rgba(255,255,255,.18); border:none; color:#fff; border-radius:10px;
-    padding:7px 11px; font-size:13px; font-weight:600; cursor:pointer;}
+    padding:6px 9px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
   .hbtn:active{transform:scale(.96);}
+  /* 银行下拉 */
+  .banksel{position:relative;}
+  .bankbtn{display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.20);
+    border:1px solid rgba(255,255,255,.38); color:#fff; border-radius:10px;
+    padding:6px 9px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;}
+  .bankbtn .bdot{width:8px; height:8px; border-radius:50%; background:#fff; opacity:.95;}
+  .bankbtn .caret{font-size:9px; opacity:.85;}
+  .bankmenu{position:absolute; right:0; top:36px; width:212px; background:#fff; border:1px solid var(--line);
+    border-radius:13px; box-shadow:0 12px 30px rgba(0,0,0,.22); padding:6px; display:none; z-index:60;}
+  .bankmenu.open{display:block;}
+  .bi{display:flex; align-items:center; gap:9px; padding:9px 9px; border-radius:9px; cursor:pointer; color:var(--txt);}
+  .bi:hover{background:#f1f4f9;}
+  .bi.cur{background:#eef3fa;}
+  .bi .dot{width:10px; height:10px; border-radius:50%; flex:none;}
+  .bi .nm{font-weight:700; font-size:13px; flex:1; white-space:nowrap;}
+  .bi .st{font-size:10px; padding:2px 6px; border-radius:20px; font-weight:700; white-space:nowrap;}
+  .bi .st.ok{background:#e6f7ee; color:#12935a;}
+  .bi .st.soon{background:#fff3e0; color:#c8740b;}
+  .bankcard{text-align:center; padding:26px 16px;}
+  .bankcard .big{font-size:32px;}
+  .bankcard h2{margin:10px 0 8px; font-size:16px; justify-content:center; display:flex;}
+  .bankcard p{font-size:13px; color:var(--sub); line-height:1.7; margin:0;}
+  .bankcard .btn{max-width:270px; margin:16px auto 0;}
   .wrap{padding:12px;}
   .chips{display:flex; gap:8px; overflow-x:auto; padding:4px 2px 8px; -webkit-overflow-scrolling:touch;}
   .chip{flex:0 0 auto; background:var(--chip); border:1px solid var(--line); color:var(--txt);
@@ -152,12 +179,20 @@
 <body>
 <div class="app">
   <header>
-    <h1>建行 R1/R2 优选助手</h1>
-    <div class="sub" id="hdSub">加载中…</div>
-    <div class="hbtns">
-      <button class="hbtn" onclick="openModal('refreshModal')">拉新</button>
-      <button class="hbtn" onclick="checkOTA()">更新</button>
+    <div class="hdr1">
+      <h1>R1/R2 优选助手</h1>
+      <div class="hdracts">
+        <button class="hbtn" onclick="openModal('refreshModal')">拉新</button>
+        <button class="hbtn" onclick="checkOTA()">更新</button>
+        <div class="banksel">
+          <button class="bankbtn" id="bankBtn" onclick="toggleBankMenu(event)">
+            <span class="bdot"></span><span id="bankLabel">建设银行</span><span class="caret">▼</span>
+          </button>
+          <div class="bankmenu" id="bankMenu"></div>
+        </div>
+      </div>
     </div>
+    <div class="sub" id="hdSub">加载中…</div>
   </header>
 
   <div id="viewMain" class="view on"><div class="wrap">
@@ -312,7 +347,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -429,6 +464,85 @@ let state = {
 // “未来”视图：以数据日期为基准判断未来事件；拉新后改用最新数据日期
 let REF_TODAY = (META.live_date || META.data_date) ? new Date((META.live_date || META.data_date) + 'T00:00:00') : new Date();
 let futureState = { tab:'all', risks:['R1','R2'], noPriv:true };
+
+/* ---------- 多银行：配置 / 切换 / 主题 / 占位 ---------- */
+const BANKS = {
+  ccb:{name:'建设银行', color:'#004E9C', dark:'#003a75', ready:true,  status:'每日自动',
+       note:'已接入：每日 8 点自动抓取在售清单、收益指标与近 1 月收益。'},
+  bob:{name:'北京银行', color:'#D98800', dark:'#a86600', ready:false, status:'待接入',
+       note:'待接入：需确认是否有免登录在售接口，否则走手动 Excel / PDF 导入。'},
+  cmb:{name:'招商银行', color:'#E60012', dark:'#b3000e', ready:false, status:'待接入',
+       note:'待接入：招行接口通常有登录态校验，需评估可行性。'},
+  bcm:{name:'交通银行', color:'#15396B', dark:'#0e2850', ready:false, status:'待接入',
+       note:'待接入：需确认免登录接口可用性。'}
+};
+let CUR_BANK = 'ccb';
+let CCB_RAW = null;               // 建行数据缓存：切走时保存（含拉新结果），切回时还原
+const LS_BANK = 'ccb_bank_v1';
+
+function toggleBankMenu(e){
+  if(e) e.stopPropagation();
+  const m=document.getElementById('bankMenu');
+  m.classList.toggle('open');
+  if(m.classList.contains('open')) renderBankMenu();
+}
+function renderBankMenu(){
+  document.getElementById('bankMenu').innerHTML = Object.keys(BANKS).map(k=>{
+    const b=BANKS[k];
+    return `<div class="bi ${k===CUR_BANK?'cur':''}" data-k="${k}" onclick="selectBank('${k}')">
+      <span class="dot" style="background:${b.color}"></span><span class="nm">${b.name}</span>
+      <span class="st ${b.ready?'ok':'soon'}">${b.status}</span></div>`;
+  }).join('');
+}
+function applyBankTheme(k){
+  const b=BANKS[k], st=document.documentElement.style;
+  st.setProperty('--red', b.color); st.setProperty('--red-d', b.dark);
+  const tm=document.querySelector('meta[name="theme-color"]'); if(tm) tm.setAttribute('content', b.color);
+}
+function bankPlaceholderHTML(){
+  const b=BANKS[CUR_BANK];
+  return `<div class="card bankcard"><div class="big">🚧</div>
+    <h2>${b.name} · 数据待接入</h2>
+    <p>${b.note}<br>接入后展示该行在售理财 / 基金 / 结构性存款，字段与建行一致（七日年化 · 近 1 月收益 · 折算年化 · 一行分析）。</p>
+    <button class="btn sub" onclick="openModal('refreshModal')">导入该行 Excel / PDF 公示</button>
+    <div class="locknote" style="text-align:center">当前仅建设银行公示格式已适配；其他银行格式在该行接入开发时完成。</div></div>`;
+}
+function updateBankHeader(){
+  const b=BANKS[CUR_BANK], hd=document.getElementById('hdSub');
+  document.getElementById('bankLabel').textContent=b.name;
+  if(CUR_BANK==='ccb'){
+    const liveTag = META.live_date ? ` · 实时快照 <b>${META.live_date}</b>` : '';
+    hd.innerHTML=`内置公示 <b>${META.data_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  }else{
+    hd.innerHTML=`🚧 <b>${b.name}</b> · ${b.status} · 切回建设银行查看每日自动更新的产品数据`;
+  }
+}
+function refreshViewBanner(){
+  if(CUR_BANK!=='ccb'){
+    document.getElementById('viewBanner').innerHTML=
+      `🚧 <b>${BANKS[CUR_BANK].name}</b> · 数据待接入，暂不展示产品（排序与筛选保持全局共享）`;
+    return true;
+  }
+  return false;
+}
+function selectBank(k){
+  if(!BANKS[k]) return;
+  if(CUR_BANK==='ccb') CCB_RAW = RAW;       // 离开建行前保存最新（含拉新后的数据）
+  if(!CCB_RAW) CCB_RAW = RAW;
+  CUR_BANK=k;
+  RAW = (k==='ccb') ? CCB_RAW : [];         // 占位银行置空，杜绝任何视图串出建行产品
+  applyBankTheme(k); updateBankHeader();
+  document.getElementById('bankMenu').classList.remove('open');
+  renderBankMenu();
+  try{ localStorage.setItem(LS_BANK,k); }catch(e){}
+  try{ const u=new URL(location.href); u.searchParams.set('bank',k); history.replaceState(null,'',u); }catch(e){}
+  /* 筛选状态全局共享：不重置 state / futureState，仅重绘 */
+  render(); renderFuture(); refreshViewBanner();
+  toast(BANKS[k].ready ? '已切换到 '+BANKS[k].name : BANKS[k].name+' 数据待接入');
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.banksel')) document.getElementById('bankMenu').classList.remove('open');
+});
 
 /* ---------- 评分 ---------- */
 function scoreProduct(p){
@@ -552,6 +666,11 @@ function analysisOf(p){
   return s;
 }
 function render(){
+  if(CUR_BANK!=='ccb'){
+    document.getElementById('stats').innerHTML=`🚧 <b>${BANKS[CUR_BANK].name}</b> · ${BANKS[CUR_BANK].status}`;
+    document.getElementById('list').innerHTML=bankPlaceholderHTML();
+    return;
+  }
   const filtered=applyFilters(RAW);
   const scored=sortList(filtered);
   const limit = state.limit==='all'? scored.length : Math.min(state.limit, scored.length);
@@ -799,6 +918,10 @@ async function pullLiveSameOrigin(){
 async function pullLive(){
   const btn=document.getElementById('liveBtn');
   const st=document.getElementById('refreshStatus');
+  if(CUR_BANK!=='ccb'){
+    st.textContent=`⚠ ${BANKS[CUR_BANK].name} 数据待接入，自动拉新仅适用于建设银行。可切回建行使用，或在此手动导入该行公示 Excel。`;
+    return;
+  }
   const progBar=document.getElementById('liveProg').firstElementChild;
   const pageEl=document.getElementById('livePage');
   btn.disabled=true; btn.textContent='拉取中…';
@@ -949,6 +1072,7 @@ function switchView(v){
     setType('all');
   }
   if(v==='future') renderFuture();
+  refreshViewBanner();          // 非建行时 banner 显示待接入
 }
 function updateFutureBanner(){
   const refStr = META.live_date || META.data_date || (REF_TODAY.getFullYear()+'-'+String(REF_TODAY.getMonth()+1).padStart(2,'0')+'-'+String(REF_TODAY.getDate()).padStart(2,'0'));
@@ -1000,6 +1124,11 @@ function futureCard(o){
 function renderFuture(){
   if(!document.getElementById('futureList')) return;
   updateFutureBanner();
+  if(CUR_BANK!=='ccb'){
+    document.getElementById('futureList').innerHTML=bankPlaceholderHTML();
+    document.getElementById('futureBanner').innerHTML=`🚧 <b>${BANKS[CUR_BANK].name}</b> 数据待接入，暂无待发售 / 认购信息。`;
+    return;
+  }
   const f=futureState, ref=REF_TODAY;
   const base = RAW.filter(p=> f.risks.indexOf(p.risk)>=0 && !(f.noPriv && p.private));
   const sub=[], reo=[];
@@ -1056,8 +1185,16 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 })();
 function boot(){
   loadLocal(); // 仅当本地缓存比内置快照新时还原
-  const liveTag = META.live_date ? ` · 实时快照 <b>${META.live_date}</b>` : '';
-  document.getElementById('hdSub').innerHTML=`内置公示 <b>${META.data_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  CCB_RAW = RAW;
+  /* 银行初值：URL ?bank= > 本地记忆 > 建设银行 */
+  try{
+    const q=new URL(location.href).searchParams.get('bank');
+    if(q&&BANKS[q]) CUR_BANK=q;
+    else { const s=localStorage.getItem(LS_BANK); if(s&&BANKS[s]) CUR_BANK=s; }
+  }catch(e){}
+  if(CUR_BANK!=='ccb') RAW=[];   // 占位银行不加载建行产品，避免首屏闪现
+  applyBankTheme(CUR_BANK); updateBankHeader(); renderBankMenu();
+  try{ localStorage.setItem(LS_BANK,CUR_BANK); }catch(e){}
   document.getElementById('aboutDate').textContent=`${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`;
   buildControls(); render();
   buildFutureRisk(); renderFuture();
@@ -1066,6 +1203,7 @@ function boot(){
   if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }catch(e){} }
   // 启动静默检查 OTA：每日快照发布后自动升级（每会话至多自动刷新一次，防循环）
   setTimeout(autoOTA, 3000);
+  try{ if(new URL(location.href).searchParams.get('menu')==='1'){ renderBankMenu(); document.getElementById('bankMenu').classList.add('open'); } }catch(e){}
 }
 async function autoOTA(){
   try{

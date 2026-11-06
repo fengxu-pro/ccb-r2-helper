@@ -70,3 +70,6 @@ merge_1m.py
 wealth_1m.json
 pp2.js
 *.idsig
+
+# 多银行 UI 验证截图（本地留档，不上仓库）
+verify-mb-*.png
