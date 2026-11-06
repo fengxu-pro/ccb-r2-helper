@@ -345,10 +345,12 @@
 <script src="libs/xlsx.full.min.js"></script>
 <script src="data.js"></script>
 <script src="bob.js"></script>
+<script src="cmb.js"></script>
+<script src="bcm.js"></script>
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -472,10 +474,10 @@ const BANKS = {
        note:'已接入：每日 8 点自动抓取在售清单、收益指标与近 1 月收益。'},
   bob:{name:'北京银行', color:'#D98800', dark:'#a86600', ready:true,  status:'每日自动',
        note:'已接入北银理财官网公示：在售/待售 720 只，含业绩比较基准、官方净值、近 1 月收益。'},
-  cmb:{name:'招商银行', color:'#E60012', dark:'#b3000e', ready:false, status:'待接入',
-       note:'待接入：招行接口通常有登录态校验，需评估可行性。'},
-  bcm:{name:'交通银行', color:'#15396B', dark:'#0e2850', ready:false, status:'待接入',
-       note:'待接入：需确认免登录接口可用性。'}
+  cmb:{name:'招商银行', color:'#E60012', dark:'#b3000e', ready:true,  status:'每日自动',
+       note:'已接入招商银行理财产品统一查询平台：公募 R1–R4 代销产品 7414 只，含官方净值与业绩比较基准（公式挂钩型不冒充数值）。'},
+  bcm:{name:'交通银行', color:'#15396B', dark:'#0e2850', ready:true,  status:'每日自动',
+       note:'已接入交通银行官网理财频道：2520 只，含七日年化 / 区间年化 / 业绩比较基准、风险等级与起购金额。'}
 };
 let CUR_BANK = 'ccb';
 let CCB_RAW = null;               // 建行数据缓存：切走时保存（含拉新结果），切回时还原
@@ -485,13 +487,18 @@ const LS_BANK = 'ccb_bank_v1';
 function bankProducts(k){
   if(k==='ccb') return CCB_RAW || RAW;
   if(k==='bob') return (window.BOB_DATA && window.BOB_DATA.products) || [];
+  if(k==='cmb') return (window.CMB_DATA && window.CMB_DATA.products) || [];
+  if(k==='bcm') return (window.BCM_DATA && window.BCM_DATA.products) || [];
   return [];
 }
 function bankMeta(k){
   if(k==='ccb') return META;
   if(k==='bob') return (window.BOB_DATA && window.BOB_DATA.meta) || {};
+  if(k==='cmb') return (window.CMB_DATA && window.CMB_DATA.meta) || {};
+  if(k==='bcm') return (window.BCM_DATA && window.BCM_DATA.meta) || {};
   return {};
 }
+const BANK_SRC_LABEL = {ccb:'建行公示', bob:'北银理财公示', cmb:'招行统一查询平台', bcm:'交行理财频道'};
 
 function toggleBankMenu(e){
   if(e) e.stopPropagation();
@@ -518,17 +525,17 @@ function bankPlaceholderHTML(){
     <h2>${b.name} · 数据待接入</h2>
     <p>${b.note}<br>接入后展示该行在售理财 / 基金 / 结构性存款，字段与建行一致（七日年化 · 近 1 月收益 · 折算年化 · 一行分析）。</p>
     <button class="btn sub" onclick="openModal('refreshModal')">导入该行 Excel / PDF 公示</button>
-    <div class="locknote" style="text-align:center">建设银行、北京银行已自动接入；其余银行格式在各自接入开发时适配。</div></div>`;
+    <div class="locknote" style="text-align:center">四家银行均已自动接入；如需自定义数据，可在此手动导入该行公示 Excel。</div></div>`;
 }
 function updateBankHeader(){
   const b=BANKS[CUR_BANK], hd=document.getElementById('hdSub'), bm=bankMeta(CUR_BANK);
   document.getElementById('bankLabel').textContent=b.name;
   document.getElementById('aboutDate').textContent = b.ready
     ? (CUR_BANK==='ccb' ? `${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`
-                        : `${CUR_BANK==='bob'?'北银理财':'官方'}公示 ${bm.live_date||bm.data_date||'—'}`)
+                        : `${BANK_SRC_LABEL[CUR_BANK]||'官方公示'} ${bm.live_date||bm.data_date||'—'}`)
     : '待接入';
   if(b.ready){
-    const src = CUR_BANK==='ccb' ? '建行公示' : (CUR_BANK==='bob' ? '北银理财公示' : '官方公示');
+    const src = BANK_SRC_LABEL[CUR_BANK] || '官方公示';
     const liveTag = bm.live_date ? ` · 实时快照 <b>${bm.live_date}</b>` : '';
     hd.innerHTML=`${src} <b>${bm.data_date||bm.live_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
   }else{

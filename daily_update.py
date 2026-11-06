@@ -42,10 +42,16 @@ if not ok:
     print('PIPELINE FAILED', flush=True)
     sys.exit(1)
 
-# 3b. 北京银行 / 北银理财：免登录官网公示 -> bob.js
-# 该行失败不阻断建行数据发布（保留上一次 bob.js 快照）
+# 3b. 其余三家银行：失败仅告警，不阻断建行数据发布（保留上次快照）
 if not run([PY, 'fetch_bob.py'], 'bob', retries=2):
-    print('WARN: 北京银行抓取失败，保留上次 bob.js 快照', flush=True)
+    print('WARN: 北京银行抓取失败，保留上次 bob.js', flush=True)
+# 招行：CDP 启动本机 Edge 捕获页面签名后重放分页（约 2 分钟），再清洗成 cmb.js
+if run([PY, 'fetch_cmb.py'], 'cmb-fetch', retries=1):
+    run([PY, 'build_cmb.py'], 'cmb-build', retries=1)
+else:
+    print('WARN: 招商银行抓取失败，保留上次 cmb.js', flush=True)
+if not run([PY, 'fetch_bcm.py'], 'bcm', retries=2):
+    print('WARN: 交通银行抓取失败，保留上次 bcm.js', flush=True)
 
 # 4. 更新 version.json 日期
 vd = json.load(open('version.json', encoding='utf-8'))
@@ -53,7 +59,9 @@ vd['live_date'] = TODAY
 vd['perf_date'] = TODAY
 vd['ret_1m_date'] = TODAY
 vd['bob_date'] = TODAY
-vd['notes'] = f'自动快照 {TODAY}：建设银行 + 北京银行（北银理财）数据已刷新。'
+vd['cmb_date'] = TODAY
+vd['bcm_date'] = TODAY
+vd['notes'] = f'自动快照 {TODAY}：建设/北京/招商/交通四家银行数据已刷新。'
 json.dump(vd, open('version.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 print('version.json ->', vd['version'], TODAY, flush=True)
 
@@ -71,7 +79,7 @@ if '--no-push' in sys.argv:
     sys.exit(0)
 
 # 5. 提交并推送（网络波动多试几次）
-run(['git', 'add', 'data.js', 'bob.js', 'version.json', 'live.json', 'index.html', 'sw.js',
+run(['git', 'add', 'data.js', 'bob.js', 'cmb.js', 'bcm.js', 'version.json', 'live.json', 'index.html', 'sw.js',
      'products.json', 'live_products.json',
      'wealth_perf.json', 'wealth_1m.json', 'nisp00.json'], 'git-add', retries=1, timeout=300)
 msg = f"auto snapshot {TODAY}"

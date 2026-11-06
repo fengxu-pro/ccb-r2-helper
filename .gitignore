@@ -78,3 +78,7 @@ verify-mb-*.png
 bob_raw.json
 ui-mockup-multibank.html
 verify-bob-*.png
+
+# 招行原始快照(24MB) 与新版验证图（本地留档，不上仓库）
+cmb_raw.json
+verify-v19-*.png

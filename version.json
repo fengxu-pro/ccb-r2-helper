@@ -1,10 +1,12 @@
 {
-  "version": "1.8.0",
-  "notes": "北京银行(北银理财)已接入：720只在售/待售产品，含业绩比较基准、官方净值、近1月收益；每日8点随建行一起自动更新。",
+  "version": "1.9.0",
+  "notes": "招商银行(7414只)、交通银行(2520只)已接入；四家银行全部每日8点自动更新。",
   "min_data_date": "2026-04-15",
   "live_date": "2026-11-06",
   "pdf_yield_date": "2026-10-29",
   "perf_date": "2026-11-06",
   "ret_1m_date": "2026-11-06",
-  "update_url": "https://fengxu-pro.github.io/ccb-r2-helper/index.html"
+  "update_url": "https://fengxu-pro.github.io/ccb-r2-helper/index.html",
+  "cmb_date": "2026-11-06",
+  "bcm_date": "2026-11-06"
 }
