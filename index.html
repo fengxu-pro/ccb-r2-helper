@@ -1045,7 +1045,7 @@ function loadLocal(){
 async function checkOTA(){
   toast('检查更新中…');
   try{
-    const res=await fetch('./version.json',{cache:'no-store'});
+    const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
     if(!res.ok) throw new Error('no version');
     const v=await res.json();
     if(compareVer(v.version, APP_VERSION)>0){
@@ -1241,7 +1241,7 @@ function boot(){
 async function autoOTA(){
   try{
     if(sessionStorage.getItem('ccb_ota_done')) return;
-    const res=await fetch('./version.json',{cache:'no-store'});
+    const res=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
     if(!res.ok) return;
     const v=await res.json();
     if(compareVer(v.version, APP_VERSION)>0){
