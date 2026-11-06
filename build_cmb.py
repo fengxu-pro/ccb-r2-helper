@@ -3,9 +3,12 @@
 
 过滤：只保留公募(pubPrv=A)、风险 R1~R4（排除 R5 高风险）。
 收益口径：zbasPrf 仅接受纯数字百分比；公式挂钩型（活期利率/中债指数/分档）标「挂钩型」，
-不取描述里的数字冒充。官网清单未披露近1月区间收益，ret_1m 留空。
+不取描述里的数字冒充。
+近1月收益：取官方 pastPerf 的 A 档 znavYld（区间实际涨幅）。
+  口径验证：A/B/C/D/E 档「区间涨幅÷年化×365」中位分别为 34/94/186/369/1098 天，
+  即近1月/近3月/近6月/近1年/近3年；100137 的 A=+0.12% 与官网累计净值近1月涨幅吻合。
 """
-import json, re, os, sys, datetime
+import json, re, os, sys, ast, datetime
 
 try:
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -52,6 +55,23 @@ def cn_date(s):
 
 def strip_none(d):
     return {k: v for k, v in d.items() if v is not None}
+
+
+def past_perf_1m(it):
+    """官方过往业绩 A 档 = 近1月区间实际收益率(%，累计净值口径)。"""
+    s = it.get('pastPerf')
+    d = s if isinstance(s, dict) else None
+    if d is None and isinstance(s, str) and s.strip():
+        try:
+            d = ast.literal_eval(s)
+        except Exception:
+            return None
+    for e in ((d or {}).get('tqilstw4z3') or []):
+        if str(e.get('zprfTyp')) == 'A':
+            v = to_float(e.get('znavYld'))
+            if v is not None and -10 <= v <= 10:
+                return round(v, 2)
+    return None
 
 
 def build(it, idx):
@@ -101,7 +121,7 @@ def build(it, idx):
         'yield_mid': perf_mid,
         'yield_source': 'cmb_api' if perf_mid is not None else None,
         'yield_date': None,
-        'ret_1m': None,
+        'ret_1m': past_perf_1m(it),
         'ret_1m_est': False,
         'term_days': None,
         'term_label': None,
@@ -114,7 +134,7 @@ def build(it, idx):
         'private': False,
         'est_drawdown': DD_MAP.get(risk, 1.0),
         'sales_target': None,
-        'note': '招商银行理财产品统一查询平台（代销，含多家理财子公司）；公式挂钩型基准不显示数值，清单未披露近1月收益。',
+        'note': '招商银行理财产品统一查询平台（代销，含多家理财子公司）；公式挂钩型基准不显示数值；近1月收益取官方过往业绩A档（累计净值口径）。',
         'prod_code': code,
         'prod_status': it.get('prdsts'),
     })

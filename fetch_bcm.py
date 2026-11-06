@@ -8,7 +8,8 @@
 字段要点：
   fundlevel 1R/2R/3R -> R1/R2/R3；displayrate + displayratedescription = 当前展示的年化/基准；
   displayrate 也可能是公式挂钩型（含中文/指数），此时退回 sincerateyear / expectyearincomeratio；
-  官网列表不披露近1月区间收益，ret_1m 留空（不臆造）。
+  官网列表不直接披露近1月区间收益：仅对「七日年化」「近3月年化」两类按官方年化反推近1月，
+  并置 ret_1m_est=True 在卡片上标「估算」；业绩比较基准/成立以来年化不参与推算（不是实际业绩）。
 """
 import json, re, os, ssl, sys, time, datetime, urllib.request, urllib.parse
 
@@ -125,11 +126,29 @@ def strip_none(d):
     return {k: v for k, v in d.items() if v is not None}
 
 
+def est_1m(rate, desc):
+    """官方区间年化 -> 近1月估算（明确标注估算，不与真实值混淆）。
+    - 七日年化：年化 / 12（与建行现金类估算同口径）
+    - 近3月年化：年化 × 91/365 = 近3月实际涨幅，再 / 3 = 近1月
+    - 业绩比较基准 / 成立以来年化：不参与（前者是目标、后者跨度不定）
+    """
+    if not rate:
+        return None
+    mid = (rate[0] + rate[1]) / 2
+    d = str(desc or '')
+    if '七日' in d or '万份' in d:
+        return round(mid / 12, 2)
+    if '近3月' in d:
+        return round(mid * 91 / 365 / 3, 2)
+    return None
+
+
 def build(it, idx):
     code = str(it.get('fundcode') or '')
     risk = {'1R': 'R1', '2R': 'R2', '3R': 'R3', '4R': 'R4', '5R': 'R5'}.get(str(it.get('fundlevel')), 'R3')
     desc = (it.get('displayratedescription') or '').strip()
     rate = parse_rate(it.get('displayrate'))
+    est = est_1m(rate, desc)
     fallback = to_float(it.get('sincerateyear')) or to_float(it.get('expectyearincomeratio'))
     perf = perf_type = perf_mid = None
     if rate:
@@ -150,11 +169,11 @@ def build(it, idx):
     else:
         st_code, st_name = '05', '已售完'
 
-    est = fmt_date(it.get('setupdate'))
+    est_date = fmt_date(it.get('setupdate'))
     age_years = None
-    if est:
+    if est_date:
         try:
-            age_years = round((datetime.date.today() - datetime.date.fromisoformat(est)).days / 365.25, 2)
+            age_years = round((datetime.date.today() - datetime.date.fromisoformat(est_date)).days / 365.25, 2)
         except Exception:
             pass
     td = term_from_desc(it.get('investdaydesc'))
@@ -180,8 +199,8 @@ def build(it, idx):
         'yield_mid': perf_mid,
         'yield_source': 'bcm_api' if perf_mid is not None else None,
         'yield_date': None,
-        'ret_1m': None,
-        'ret_1m_est': False,
+        'ret_1m': est,
+        'ret_1m_est': True if est is not None else None,
         'term_days': td,
         'term_label': (it.get('investdaydesc') or it.get('investtermshow') or '').strip() or None,
         'min_amount': zero_int(it.get('minbidsamountbyindi')),
@@ -193,7 +212,7 @@ def build(it, idx):
         'private': str(it.get('privateflg')).lower() == 'true',
         'est_drawdown': DD_MAP.get(risk, 1.0),
         'sales_target': None,
-        'note': '交通银行官网理财频道；收益为官网披露的区间年化/七日年化/业绩比较基准，该列表未提供近1月收益。',
+        'note': '交通银行官网理财频道；官网未直接披露近1月区间收益，仅由七日年化/近3月年化反推估算并标注「估算」。',
         'prod_code': code,
         'prod_status': it.get('fundstatus'),
     })

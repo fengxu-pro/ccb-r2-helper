@@ -35,12 +35,20 @@ def git(*args):
     return subprocess.check_output(['git'] + list(args), cwd=D).decode('utf-8').strip()
 
 
+# 需要同步到 Pages 的文件（本地/远端历史分叉时不能用 git diff 远端 SHA 当基准）
+FILES = [
+    'index.html', 'sw.js', 'version.json', 'manifest.webmanifest',
+    'data.js', 'bob.js', 'cmb.js', 'bcm.js', 'live.json', '.gitignore',
+    'daily_update.py', 'fetch_bob.py', 'fetch_cmb.py', 'build_cmb.py',
+    'fetch_bcm.py', 'push_via_api.py',
+]
+
+
 def main():
-    base = sys.argv[1] if len(sys.argv) > 1 else req('/git/refs/heads/main')['object']['sha']
-    head = git('rev-parse', 'HEAD')
+    base = req('/git/refs/heads/main')['object']['sha']   # 远端 parent / tree 基准
     msg = git('log', '-1', '--pretty=%B')
-    files = [f for f in git('diff', '--name-only', base, head).splitlines() if f.strip()]
-    print('base =', base[:8], 'head =', head[:8], 'files =', len(files), flush=True)
+    files = [f for f in FILES if os.path.exists(os.path.join(D, f))]
+    print('remote base =', base[:8], 'files =', len(files), flush=True)
     base_commit = req('/git/commits/' + base)
     base_tree = base_commit['tree']['sha']
 

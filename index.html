@@ -350,7 +350,7 @@
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -745,7 +745,7 @@ function render(){
       </div>
       <div class="ret1m"><span class="lbl">近1月收益</span>${
         p.ret_1m!=null
-          ? `<b class="${r1cls}">${r1>0?'+':''}${r1}%</b>${p.ret_1m_est?'<span class="est">估算</span>':''}<span class="ann">折算年化 <b class="${r1cls}">${r1ann>=0?'+':''}${r1ann}%</b></span>`
+          ? `<b class="${r1cls}">${r1>0?'+':''}${r1}%</b>${p.ret_1m_est?'<span class="est">估算（由官方年化折算，不作年化外推）</span>':`<span class="ann">折算年化 <b class="${r1cls}">${r1ann>=0?'+':''}${r1ann}%</b></span>`}`
           : `<b class="flat">—</b>`
       }</div>
       <div class="analysis"><span class="ai">💡 建议</span>${analysisOf(p)}</div>
