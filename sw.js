@@ -1,8 +1,9 @@
-const CACHE = 'ccb-r1r2-v3';
+const CACHE = 'ccb-r1r2-v4';
 const ASSETS = [
   './',
   './index.html',
   './data.js',
+  './bob.js',
   './libs/xlsx.full.min.js',
   './manifest.webmanifest',
   './icon-192.png',

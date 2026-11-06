@@ -73,3 +73,8 @@ pp2.js
 
 # 多银行 UI 验证截图（本地留档，不上仓库）
 verify-mb-*.png
+
+# 北京银行抓取原始快照 + UI 设计稿（本地留档，不上仓库）
+bob_raw.json
+ui-mockup-multibank.html
+verify-bob-*.png

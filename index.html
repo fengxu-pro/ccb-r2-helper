@@ -344,10 +344,11 @@
 
 <script src="libs/xlsx.full.min.js"></script>
 <script src="data.js"></script>
+<script src="bob.js"></script>
 <script>
 /* ---------- 常量 ---------- */
 let curView='main';
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.8.0';
 const RISK_COLORS = {R0:'var(--r0)',R1:'var(--r1)',R2:'var(--r2)',R3:'var(--r3)',R4:'var(--r4)'};
 const RISK_LABEL = {R0:'R0 极低',R1:'R1 低',R2:'R2 中低',R3:'R3 中',R4:'R4 中高'};
 const STATUS_COLORS = {'申购中':'#3b82f6','认购中':'#e05020','可预约':'#8b5cf6','预售':'#0ea5e9','已售完':'#94a3b8'};
@@ -469,8 +470,8 @@ let futureState = { tab:'all', risks:['R1','R2'], noPriv:true };
 const BANKS = {
   ccb:{name:'建设银行', color:'#004E9C', dark:'#003a75', ready:true,  status:'每日自动',
        note:'已接入：每日 8 点自动抓取在售清单、收益指标与近 1 月收益。'},
-  bob:{name:'北京银行', color:'#D98800', dark:'#a86600', ready:false, status:'待接入',
-       note:'待接入：需确认是否有免登录在售接口，否则走手动 Excel / PDF 导入。'},
+  bob:{name:'北京银行', color:'#D98800', dark:'#a86600', ready:true,  status:'每日自动',
+       note:'已接入北银理财官网公示：在售/待售 720 只，含业绩比较基准、官方净值、近 1 月收益。'},
   cmb:{name:'招商银行', color:'#E60012', dark:'#b3000e', ready:false, status:'待接入',
        note:'待接入：招行接口通常有登录态校验，需评估可行性。'},
   bcm:{name:'交通银行', color:'#15396B', dark:'#0e2850', ready:false, status:'待接入',
@@ -479,6 +480,18 @@ const BANKS = {
 let CUR_BANK = 'ccb';
 let CCB_RAW = null;               // 建行数据缓存：切走时保存（含拉新结果），切回时还原
 const LS_BANK = 'ccb_bank_v1';
+
+/* 每家银行的数据与元信息。新增银行时：抓数据 -> 独立 xxx.js(window.XXX_DATA) -> 在这里加分支 */
+function bankProducts(k){
+  if(k==='ccb') return CCB_RAW || RAW;
+  if(k==='bob') return (window.BOB_DATA && window.BOB_DATA.products) || [];
+  return [];
+}
+function bankMeta(k){
+  if(k==='ccb') return META;
+  if(k==='bob') return (window.BOB_DATA && window.BOB_DATA.meta) || {};
+  return {};
+}
 
 function toggleBankMenu(e){
   if(e) e.stopPropagation();
@@ -505,20 +518,25 @@ function bankPlaceholderHTML(){
     <h2>${b.name} · 数据待接入</h2>
     <p>${b.note}<br>接入后展示该行在售理财 / 基金 / 结构性存款，字段与建行一致（七日年化 · 近 1 月收益 · 折算年化 · 一行分析）。</p>
     <button class="btn sub" onclick="openModal('refreshModal')">导入该行 Excel / PDF 公示</button>
-    <div class="locknote" style="text-align:center">当前仅建设银行公示格式已适配；其他银行格式在该行接入开发时完成。</div></div>`;
+    <div class="locknote" style="text-align:center">建设银行、北京银行已自动接入；其余银行格式在各自接入开发时适配。</div></div>`;
 }
 function updateBankHeader(){
-  const b=BANKS[CUR_BANK], hd=document.getElementById('hdSub');
+  const b=BANKS[CUR_BANK], hd=document.getElementById('hdSub'), bm=bankMeta(CUR_BANK);
   document.getElementById('bankLabel').textContent=b.name;
-  if(CUR_BANK==='ccb'){
-    const liveTag = META.live_date ? ` · 实时快照 <b>${META.live_date}</b>` : '';
-    hd.innerHTML=`内置公示 <b>${META.data_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
+  document.getElementById('aboutDate').textContent = b.ready
+    ? (CUR_BANK==='ccb' ? `${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`
+                        : `${CUR_BANK==='bob'?'北银理财':'官方'}公示 ${bm.live_date||bm.data_date||'—'}`)
+    : '待接入';
+  if(b.ready){
+    const src = CUR_BANK==='ccb' ? '建行公示' : (CUR_BANK==='bob' ? '北银理财公示' : '官方公示');
+    const liveTag = bm.live_date ? ` · 实时快照 <b>${bm.live_date}</b>` : '';
+    hd.innerHTML=`${src} <b>${bm.data_date||bm.live_date||'快照'}</b>${liveTag} · 共 <b>${RAW.length}</b> 只 · v${APP_VERSION}`;
   }else{
     hd.innerHTML=`🚧 <b>${b.name}</b> · ${b.status} · 切回建设银行查看每日自动更新的产品数据`;
   }
 }
 function refreshViewBanner(){
-  if(CUR_BANK!=='ccb'){
+  if(!BANKS[CUR_BANK].ready){
     document.getElementById('viewBanner').innerHTML=
       `🚧 <b>${BANKS[CUR_BANK].name}</b> · 数据待接入，暂不展示产品（排序与筛选保持全局共享）`;
     return true;
@@ -530,7 +548,10 @@ function selectBank(k){
   if(CUR_BANK==='ccb') CCB_RAW = RAW;       // 离开建行前保存最新（含拉新后的数据）
   if(!CCB_RAW) CCB_RAW = RAW;
   CUR_BANK=k;
-  RAW = (k==='ccb') ? CCB_RAW : [];         // 占位银行置空，杜绝任何视图串出建行产品
+  RAW = bankProducts(k);                    // 已接入银行用各自数据；未接入置空
+  const bm=bankMeta(k);
+  state.source = bm.live_date || bm.data_date || '快照';
+  if(bm.live_date) REF_TODAY = new Date(bm.live_date+'T00:00:00');
   applyBankTheme(k); updateBankHeader();
   document.getElementById('bankMenu').classList.remove('open');
   renderBankMenu();
@@ -609,7 +630,7 @@ function statusInfo(p){
   const code = p.status_code || p.live_status_code;
   const name = p.status || p.live_status;
   if(!code || !name) return '';
-  const col = STATUS_COLORS[code] || '#888';
+  const col = STATUS_COLORS[name] || STATUS_COLORS[code] || '#888';
   return `<span class="status-badge" style="background:${col}">${name}</span>`;
 }
 
@@ -666,7 +687,7 @@ function analysisOf(p){
   return s;
 }
 function render(){
-  if(CUR_BANK!=='ccb'){
+  if(!BANKS[CUR_BANK].ready){
     document.getElementById('stats').innerHTML=`🚧 <b>${BANKS[CUR_BANK].name}</b> · ${BANKS[CUR_BANK].status}`;
     document.getElementById('list').innerHTML=bankPlaceholderHTML();
     return;
@@ -919,7 +940,9 @@ async function pullLive(){
   const btn=document.getElementById('liveBtn');
   const st=document.getElementById('refreshStatus');
   if(CUR_BANK!=='ccb'){
-    st.textContent=`⚠ ${BANKS[CUR_BANK].name} 数据待接入，自动拉新仅适用于建设银行。可切回建行使用，或在此手动导入该行公示 Excel。`;
+    st.textContent = BANKS[CUR_BANK].ready
+      ? `ℹ ${BANKS[CUR_BANK].name} 数据由每天 8 点的自动任务更新（官网免登录接口），无需在此拉新；点右上「更新」可检查新版本。`
+      : `⚠ ${BANKS[CUR_BANK].name} 数据待接入，自动拉新仅适用于建设银行。可切回建行使用，或在此手动导入该行公示 Excel。`;
     return;
   }
   const progBar=document.getElementById('liveProg').firstElementChild;
@@ -1075,8 +1098,9 @@ function switchView(v){
   refreshViewBanner();          // 非建行时 banner 显示待接入
 }
 function updateFutureBanner(){
-  const refStr = META.live_date || META.data_date || (REF_TODAY.getFullYear()+'-'+String(REF_TODAY.getMonth()+1).padStart(2,'0')+'-'+String(REF_TODAY.getDate()).padStart(2,'0'));
-  const isLive = !!META.live_date;
+  const bm = bankMeta(CUR_BANK);
+  const refStr = bm.live_date || bm.data_date || (REF_TODAY.getFullYear()+'-'+String(REF_TODAY.getMonth()+1).padStart(2,'0')+'-'+String(REF_TODAY.getDate()).padStart(2,'0'));
+  const isLive = !!bm.live_date;
   document.getElementById('futureBanner').innerHTML = isLive
     ? `以实时清单日期 <b>${refStr}</b> 为基准。<b>认购中 / 可预约 / 预售</b>直接取自建行实时接口；<b>封闭待开放</b>按募集期与期限推算。点右上角【拉新】可刷新实时状态。`
     : `以内置快照日期 <b>${refStr}</b> 为基准判断“未来”。该期产品认购大多已结束，<b>待发售</b>类可能为空；点右上角【拉新】获取最新公示后，会自动按新日期重新判断。`;
@@ -1124,7 +1148,7 @@ function futureCard(o){
 function renderFuture(){
   if(!document.getElementById('futureList')) return;
   updateFutureBanner();
-  if(CUR_BANK!=='ccb'){
+  if(!BANKS[CUR_BANK].ready){
     document.getElementById('futureList').innerHTML=bankPlaceholderHTML();
     document.getElementById('futureBanner').innerHTML=`🚧 <b>${BANKS[CUR_BANK].name}</b> 数据待接入，暂无待发售 / 认购信息。`;
     return;
@@ -1192,10 +1216,12 @@ function boot(){
     if(q&&BANKS[q]) CUR_BANK=q;
     else { const s=localStorage.getItem(LS_BANK); if(s&&BANKS[s]) CUR_BANK=s; }
   }catch(e){}
-  if(CUR_BANK!=='ccb') RAW=[];   // 占位银行不加载建行产品，避免首屏闪现
+  RAW = bankProducts(CUR_BANK); // 按银行加载各自数据，避免首屏闪现建行产品
+  const bm0=bankMeta(CUR_BANK);
+  state.source = bm0.live_date || bm0.data_date || '快照';
+  if(bm0.live_date) REF_TODAY = new Date(bm0.live_date+'T00:00:00');
   applyBankTheme(CUR_BANK); updateBankHeader(); renderBankMenu();
   try{ localStorage.setItem(LS_BANK,CUR_BANK); }catch(e){}
-  document.getElementById('aboutDate').textContent=`${META.data_date||'快照'}${META.live_date?(' / 实时 '+META.live_date):''}`;
   buildControls(); render();
   buildFutureRisk(); renderFuture();
   switchView('main'); // 初始化顶部 banner（默认优选）
