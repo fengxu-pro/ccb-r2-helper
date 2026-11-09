@@ -1,12 +1,13 @@
 {
   "version": "1.9.1",
-  "notes": "近1月收益补齐：招行取官方过往业绩A档(真实,约89%)；交行官网无近1月,由七日/近3月年化反推并标「估算」,估算值不再折算年化。",
+  "notes": "自动快照 2026-11-09：建设/北京/招商/交通四家银行数据已刷新。",
   "min_data_date": "2026-04-15",
-  "live_date": "2026-11-06",
+  "live_date": "2026-11-09",
   "pdf_yield_date": "2026-10-29",
-  "perf_date": "2026-11-06",
-  "ret_1m_date": "2026-11-06",
+  "perf_date": "2026-11-09",
+  "ret_1m_date": "2026-11-09",
   "update_url": "https://fengxu-pro.github.io/ccb-r2-helper/index.html",
-  "cmb_date": "2026-11-06",
-  "bcm_date": "2026-11-06"
+  "cmb_date": "2026-11-09",
+  "bcm_date": "2026-11-09",
+  "bob_date": "2026-11-09"
 }
