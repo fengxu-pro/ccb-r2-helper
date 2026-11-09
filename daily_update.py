@@ -79,9 +79,10 @@ if '--no-push' in sys.argv:
     sys.exit(0)
 
 # 5. 提交并推送（网络波动多试几次）
-run(['git', 'add', 'data.js', 'bob.js', 'cmb.js', 'bcm.js', 'version.json', 'live.json', 'index.html', 'sw.js',
-     'products.json', 'live_products.json',
-     'wealth_perf.json', 'wealth_1m.json', 'nisp00.json'], 'git-add', retries=1, timeout=300)
+# 只加仓库实际跟踪的文件：products.json / wealth_*.json / nisp00.json 等被 .gitignore 忽略，
+# 加进去会让整条 git add 失败（hint: Use -f ...），导致本地没有 commit。
+run(['git', 'add', 'data.js', 'bob.js', 'cmb.js', 'bcm.js', 'version.json', 'live.json',
+     'index.html', 'sw.js'], 'git-add', retries=1, timeout=300)
 msg = f"auto snapshot {TODAY}"
 subprocess.run(['git', 'commit', '-m', msg], capture_output=True)
 pushed = False
