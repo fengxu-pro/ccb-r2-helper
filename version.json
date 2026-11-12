@@ -1,13 +1,13 @@
 {
   "version": "1.9.2",
-  "notes": "自动快照 2026-11-11：建设/北京/招商/交通四家银行数据已刷新。",
+  "notes": "自动快照 2026-11-12：建设/北京/招商/交通四家银行数据已刷新。",
   "min_data_date": "2026-04-15",
-  "live_date": "2026-11-11",
+  "live_date": "2026-11-12",
   "pdf_yield_date": "2026-10-29",
-  "perf_date": "2026-11-11",
-  "ret_1m_date": "2026-11-11",
+  "perf_date": "2026-11-12",
+  "ret_1m_date": "2026-11-12",
   "update_url": "https://fengxu-pro.github.io/ccb-r2-helper/index.html",
-  "cmb_date": "2026-11-11",
-  "bcm_date": "2026-11-11",
-  "bob_date": "2026-11-11"
+  "cmb_date": "2026-11-12",
+  "bcm_date": "2026-11-12",
+  "bob_date": "2026-11-12"
 }
